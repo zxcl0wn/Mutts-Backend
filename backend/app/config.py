@@ -6,20 +6,21 @@ load_dotenv()
 
 
 class DBSettings(BaseModel):
-    url = "sqlite:///./mutts_test.db"
-    echo: bool = True
+    url: str = f'postgresql+asyncpg://{os.getenv("DB_USER")}:{os.getenv("DB_PASSWORD")}@{os.getenv("DB_HOST")}:{os.getenv("DB_PORT")}/{os.getenv("DB_NAME")}'
+    echo: bool = False
 
 
 class AuthJWT(BaseModel):
     secret_key: str = os.getenv("SECRET_KEY")
     algorithm: str = os.getenv("ALGORITHM")
-    dummy_password: str = os.getenv("DUMMY_SECRET_KEY")
+    dummy_password: str = os.getenv("DUMMY_HASHED_PASSWORD")
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
     refresh_token_expire_days: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
 
 
 class Settings(BaseSettings):
     db: DBSettings = DBSettings()
+
     auth_jwt: AuthJWT = AuthJWT()
 
 

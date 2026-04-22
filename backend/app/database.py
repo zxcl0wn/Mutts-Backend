@@ -1,25 +1,20 @@
-from turtledemo.yinyang import yin
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 from .config import settings
 
 
-engine = create_engine(
+engine = create_async_engine(
     url=settings.db.url,
-    connect_args={"check_some_thread": False}  # For SQLite
+    echo=settings.db.echo
 )
-SessionLocal = sessionmaker(bind=engine)
+AsyncSessionLocal = async_sessionmaker(bind=engine)
 
 class Base(DeclarativeBase):
     ...
 
-def get_db():
-    db = SessionLocal()
-    try:
+async def get_db():
+    async with AsyncSessionLocal() as db:
         yield db
-    finally:
-        db.close()
-
-def init_db():
-    Base.metadata.create_all(bind=engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
