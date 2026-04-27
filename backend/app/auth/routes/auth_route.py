@@ -6,7 +6,7 @@ from ..services.auth_services import authenticate_user, get_current_user
 from ...auth.utils.auth_utils import create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordRequestForm
 from ..models import Token
-from ...config import settings
+from ...config import get_settings
 from ...database import get_db
 from ...models import User
 from ...schemas import UserCreate, UserResponse
@@ -17,6 +17,7 @@ router = APIRouter(
     tags=["Auth"],
 )
 
+settings = get_settings()
 
 @router.post("/register")
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):

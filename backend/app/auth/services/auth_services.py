@@ -13,10 +13,11 @@ from ...models import User
 from ...repositories import UserRepository
 from ...database import get_db
 from ...auth.utils.auth_utils import verify_password, create_jwt
-from ...config import settings
+from ...config import get_settings
 load_dotenv()
 
 
+settings = get_settings()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 

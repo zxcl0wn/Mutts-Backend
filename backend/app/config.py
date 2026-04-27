@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 import os
@@ -18,10 +19,15 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
 
 
+class RedisSettings(BaseModel):
+    url: str = "redis://localhost:6379/0"
+
+
 class Settings(BaseSettings):
     db: DBSettings = DBSettings()
-
     auth_jwt: AuthJWT = AuthJWT()
+    redis: RedisSettings = RedisSettings()
 
-
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

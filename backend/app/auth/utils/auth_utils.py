@@ -1,13 +1,17 @@
 from bcrypt import hashpw, gensalt, checkpw
 import jwt
+from fastapi import HTTPException, status
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
-from ...config import settings
+from jwt import InvalidTokenError
+from ..models import TokenData
+from ...config import get_settings
 from ...models import User
 load_dotenv()
 
 
+settings = get_settings()
 TOKEN_TYPE_FIELD = "type"
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
@@ -83,3 +87,25 @@ def create_refresh_token(user: User) -> str:
         token_data=jwt_payload,
         expire_timedelta=timedelta(days=settings.auth_jwt.refresh_token_expire_days),
     )
+
+
+async def verify_token(token: str) -> str:
+    try:
+        payload = jwt.decode(
+            token,
+            key=settings.auth_jwt.secret_key,
+            algorithms=[settings.auth_jwt.algorithm]
+        )
+
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: no username"
+            )
+        return username
+
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )

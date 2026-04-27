@@ -17,6 +17,17 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test_user -d mutts_postgres"]
 
+  redis:
+    image: redis:8.6.2-alpine
+    container_name: mutts_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 volumes:
   postgres_data:
