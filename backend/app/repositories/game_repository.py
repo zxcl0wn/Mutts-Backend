@@ -23,7 +23,7 @@ class GameRepository(BaseRedisRepository):
         return game_state.game_id
 
 
-    async def get_game(self, game_id: int) -> GameState|None:
+    async def get_game(self, game_id: str) -> GameState|None:
         """Получить игру по ID"""
         key = f"game:{game_id}"
         data = await self._get_hash(key)
@@ -49,27 +49,27 @@ class GameRepository(BaseRedisRepository):
         await self.create_game(game_state)  # TODO: неэффективно
 
 
-    async def delete_game(self, game_id: int):
+    async def delete_game(self, game_id: str):
         """Удалить игру"""
         await self._delete(f"game:{game_id}")
 
 
-    async def add_connected_player(self, game_id: int, username: str):
+    async def add_connected_player(self, game_id: str, username: str):
         """Отметить игрока как подключенного"""
         await self.redis.sadd(f"game:{game_id}:connected", username)
 
 
-    async def remove_connected_player(self, game_id: int, username: str):
+    async def remove_connected_player(self, game_id: str, username: str):
         """Удалить игрока из списка подключенных"""
         await self.redis.srem(f"game:{game_id}:connected", username)
 
 
-    async def get_connected_count(self, game_id: int) -> int:
+    async def get_connected_count(self, game_id: str) -> int:
         """Получить количество подключенных игроков"""
         return await self.redis.scard(f"game:{game_id}:connected")
 
 
-    async def publish_to_game(self, game_id: int, message: dict):
+    async def publish_to_game(self, game_id: str, message: dict):
         """Отправить сообщение в канал игры"""
         await self.redis.publish(
             f"game:{game_id}",

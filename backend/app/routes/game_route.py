@@ -6,6 +6,7 @@ from ..services import GameService
 from ..repositories import GameRepository
 from fastapi import HTTPException, status
 from ..core.redis import get_redis
+from ..core.timer_manager import timer_manager
 import json
 import asyncio
 
@@ -18,7 +19,7 @@ router = APIRouter(
 @router.websocket("/{game_id}")
 async def game_websocket(
         websocket: WebSocket,
-        game_id: int,
+        game_id: str,
         access_token: str,
         game_service: GameService = Depends(get_game_service),
         game_repo: GameRepository = Depends(get_game_repository),
@@ -52,13 +53,36 @@ async def game_websocket(
             await game_repo.publish_to_game(game_id, {
                 "type": "all_players_connected"
             })
-            # TODO: Запустить countdown и start_planning_phase
+            
 
-        # 6. Подписываемся на Redis Pub/Sub канал игры
+            await asyncio.sleep(1)
+            await game_repo.publish_to_game(game_id, {
+                "type": "countdown",
+                "value": 3
+            })
+            await asyncio.sleep(1)
+            await game_repo.publish_to_game(game_id, {
+                "type": "countdown",
+                "value": 2
+            })
+            await asyncio.sleep(1)
+            await game_repo.publish_to_game(game_id, {
+                "type": "countdown",
+                "value": 1
+            })
+            await asyncio.sleep(1)
+            
+            # Запускаем фазу планирования
+            await game_service.start_planning_phase(game_id)
+            
+            # Запускаем таймер
+            await timer_manager.start_planning_timer(game_id, game_service, game_repo)
+
+        # 6. Подписываемся на Pub/Sub
         pubsub = redis.pubsub()
         await pubsub.subscribe(f"game:{game_id}")
 
-        # 7. Запускаем listener для Redis Pub/Sub в отдельной задаче
+        # 7. listener для Pub/Sub в отдельной задаче
         async def listen_redis():
             async for message in pubsub.listen():
                 if message['type'] == 'message':
@@ -76,14 +100,14 @@ async def game_websocket(
                 if data["type"] == "place_unit":
                     result = await game_service.place_unit(
                         game_id, username,
-                        data["unit_type"], data["x"], data["y"]
+                        data["unit_type"]
                     )
-                    # GameService уже сделал publish_to_game, все получат уведомление
+                    # GameService сделал publish_to_game, все получат уведомление
 
                 elif data["type"] == "move_unit":
                     result = await game_service.move_unit(
                         game_id, username,
-                        data["unit_id"], data["x"], data["y"]
+                        data["unit_id"], data["x"], data["y"], data["location"]
                     )
 
                 elif data["type"] == "sell_unit":
