@@ -116,7 +116,13 @@ async def game_websocket(
                         data["unit_id"]
                     )
 
-                # TODO: Добавить другие типы сообщений (merge_units, ready, и т.д.)
+                elif data["type"] == "merge_units":
+                    result = await game_service.merge_units(
+                        game_id, username,
+                        data["unit_id_1"], data["unit_id_2"]
+                    )
+
+                # TODO: Добавить другие типы сообщений
 
         except WebSocketDisconnect:
             print(f"✗ {username} disconnected from game {game_id}")

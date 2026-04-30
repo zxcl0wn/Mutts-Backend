@@ -78,18 +78,31 @@ class GameService:
         # Списываем монеты
         player.coins -= unit_cost
 
+        # Проверяем автоматический мердж
+        merged_unit = await self._check_auto_merge(game, username, unit)
+        
         # Сохраняем
         await self.game_repo.update_game(game)
 
         # Уведомляем игроков
-        await self.game_repo.publish_to_game(game_id, {
-            "type": "unit_placed",
-            "unit": unit.model_dump(),
-            "player": username,
-            "coins_left": player.coins
-        })
-
-        return {"success": True, "unit_id": unit.id, "location": location, "position_x": x, "position_y": y}
+        if merged_unit:
+            # Произошел автомердж
+            await self.game_repo.publish_to_game(game_id, {
+                "type": "auto_merge",
+                "merged_unit": merged_unit.model_dump(),
+                "player": username,
+                "coins_left": player.coins
+            })
+            return {"success": True, "unit_id": merged_unit.id, "merged": True}
+        else:
+            # Обычное размещение
+            await self.game_repo.publish_to_game(game_id, {
+                "type": "unit_placed",
+                "unit": unit.model_dump(),
+                "player": username,
+                "coins_left": player.coins
+            })
+            return {"success": True, "unit_id": unit.id, "location": location, "position_x": x, "position_y": y}
 
 
     def _get_unit_cost(self, unit_type: str) -> int:
@@ -121,6 +134,64 @@ class GameService:
             owner=owner,
             location=location
         )
+
+
+    async def _check_auto_merge(self, game, username: str, new_unit: Unit) -> Unit | None:
+        """Проверить и выполнить автоматический мердж если возможно"""
+        # Ищем юнитов того же типа и уровня
+        matching_units = [
+            u for u in game.units 
+            if u.owner == username 
+            and u.type == new_unit.type 
+            and u.level == new_unit.level
+            and u.id != new_unit.id  # Исключаем только что созданного юнита
+        ]
+        
+        # Нужно минимум 2 одинаковых юнита для автомерджа (включая нового)
+        if len(matching_units) >= 1:
+            # Проверяем максимальный уровень
+            if new_unit.level >= 4:
+                return None  # Уже максимальный уровень
+            
+            # Берем первого для слияния с новым
+            unit1 = matching_units[0]
+            
+            # Создаем нового юнита следующего уровня
+            new_level = new_unit.level + 1
+            base_stats = game_constants.UNIT_STATS.get(new_unit.type)
+            
+            # Увеличиваем характеристики (формула: base * 2^(level-1))
+            multiplier = 2 ** (new_level - 1)
+            new_hp = int(base_stats["hp"] * multiplier)
+            new_attack = int(base_stats["attack"] * multiplier)
+            
+            # Создаем улучшенного юнита на позиции первого
+            merged_unit = Unit(
+                id=str(uuid.uuid4()),
+                type=new_unit.type,
+                level=new_level,
+                hp=new_hp,
+                max_hp=new_hp,
+                attack=new_attack,
+                attack_speed=base_stats["attack_speed"],
+                range=base_stats["range"],
+                move_speed=base_stats["move_speed"],
+                position_x=unit1.position_x,
+                position_y=unit1.position_y,
+                owner=username,
+                location=unit1.location
+            )
+            
+            # Удаляем два старых юнита
+            game.units = [u for u in game.units if u.id not in [new_unit.id, unit1.id]]
+            
+            # Добавляем нового
+            game.units.append(merged_unit)
+            
+            # Рекурсивно проверяем еще раз (может быть цепочка мерджей)
+            return await self._check_auto_merge(game, username, merged_unit)
+        
+        return None
 
 
     async def check_player_in_game(self, username: str, game_id: str):
@@ -281,6 +352,96 @@ class GameService:
         })
 
         return {"success": True, "refund": refund, "coins_left": player.coins}
+
+
+    async def merge_units(self, game_id: str, username: str, unit_id_1: str, unit_id_2: str) -> dict:
+        """Слить два юнита в один более высокого уровня"""
+        game = await self.game_repo.get_game(game_id)
+
+        if not game or game.phase != game_constants.GamePhases.PLANNING.value:
+            return {"success": False, "error": "Invalid game state"}
+
+        # Находим оба юнита
+        unit1 = None
+        unit2 = None
+        unit1_index = None
+        unit2_index = None
+        
+        for i, unit in enumerate(game.units):
+            if unit.id == unit_id_1:
+                unit1 = unit
+                unit1_index = i
+            if unit.id == unit_id_2:
+                unit2 = unit
+                unit2_index = i
+
+        if not unit1 or not unit2:
+            return {"success": False, "error": "One or both units not found"}
+
+        # Проверяем что оба юнита принадлежат игроку
+        if unit1.owner != username or unit2.owner != username:
+            return {"success": False, "error": "Not your units"}
+
+        # Проверяем что юниты одного типа
+        if unit1.type != unit2.type:
+            return {"success": False, "error": "Units must be of the same type"}
+
+        # Проверяем что юниты одного уровня
+        if unit1.level != unit2.level:
+            return {"success": False, "error": "Units must be of the same level"}
+        
+        # Проверяем максимальный уровень
+        if unit1.level >= 4:
+            return {"success": False, "error": "Units are already at max level"}
+
+        # Создаем нового юнита следующего уровня
+        new_level = unit1.level + 1
+        base_stats = game_constants.UNIT_STATS.get(unit1.type)
+        
+        # Увеличиваем характеристики
+        multiplier = 2 ** (new_level - 1)
+        new_hp = int(base_stats["hp"] * multiplier)
+        new_attack = int(base_stats["attack"] * multiplier)
+        
+        # Берем позицию первого юнита
+        new_unit = Unit(
+            id=str(uuid.uuid4()),
+            type=unit1.type,
+            level=new_level,
+            hp=new_hp,
+            max_hp=new_hp,
+            attack=new_attack,
+            attack_speed=base_stats["attack_speed"],
+            range=base_stats["range"],
+            move_speed=base_stats["move_speed"],
+            position_x=unit1.position_x,
+            position_y=unit1.position_y,
+            owner=username,
+            location=unit1.location
+        )
+
+        # Удаляем старых юнитов
+        if unit1_index > unit2_index:
+            game.units.pop(unit1_index)
+            game.units.pop(unit2_index)
+        else:
+            game.units.pop(unit2_index)
+            game.units.pop(unit1_index)
+
+        # Добавляем нового юнита
+        game.units.append(new_unit)
+
+        await self.game_repo.update_game(game)
+
+        await self.game_repo.publish_to_game(game_id, {
+            "type": "units_merged",
+            "unit_id_1": unit_id_1,
+            "unit_id_2": unit_id_2,
+            "new_unit": new_unit.model_dump(),
+            "player": username
+        })
+        
+        return {"success": True, "new_unit": new_unit.model_dump()}
 
 
     async def start_planning_phase(self, game_id: str, start_timer: bool = False) -> dict:
