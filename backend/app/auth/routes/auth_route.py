@@ -6,7 +6,7 @@ from ..services.auth_services import authenticate_user, get_current_user
 from ...auth.utils.auth_utils import create_access_token, create_refresh_token
 from fastapi.security import OAuth2PasswordRequestForm
 from ..models import Token
-from ...config import get_settings
+from ...config import settings
 from ...database import get_db
 from ...models import User
 from ...schemas import UserCreate, UserResponse
@@ -17,7 +17,6 @@ router = APIRouter(
     tags=["Auth"],
 )
 
-settings = get_settings()
 
 @router.post("/register")
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -53,6 +52,14 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession = Depends(ge
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
+        )
+
+    # Проверяем что это именно refresh token
+    token_type = payload.get("type")
+    if token_type != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type. Refresh token required"
         )
 
     user_username = payload.get("sub")

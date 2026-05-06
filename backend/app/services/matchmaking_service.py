@@ -1,5 +1,5 @@
 from ..repositories import PlayerRepository, GameRepository
-from ..models import GameState, PlayerState
+from ..schemas import GameState, PlayerState
 import uuid
 from .. import game_constants
 
@@ -48,13 +48,18 @@ class MatchmakingService:
                 "game_id": game_id
             }
         
-        # Проверяем в очереди ли
-        queue_size = await self.player_repo.get_queue_size()
-        # TODO: Проверить что username в очереди
+        # Проверяем в очереди ли игрок
+        in_queue = await self.player_repo.is_in_queue(username)
+        if in_queue:
+            queue_size = await self.player_repo.get_queue_size()
+            return {
+                "status": "searching",
+                "queue_size": queue_size
+            }
         
+        # Игрок не в игре и не в очереди
         return {
-            "status": "searching",
-            "queue_size": queue_size
+            "status": "idle"
         }
 
 

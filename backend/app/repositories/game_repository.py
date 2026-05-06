@@ -1,5 +1,5 @@
 from .base import BaseRedisRepository
-from ..models import GameState, PlayerState, Unit
+from ..schemas import GameState, PlayerState, Unit
 import json
 
 

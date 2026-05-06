@@ -1,19 +1,21 @@
-from ..repositories import GameRepository, PlayerRepository
-from ..models import Unit
+from ..repositories import GameRepository, PlayerRepository, UnitRepository
+from ..schemas import Unit
 import uuid
 from fastapi import HTTPException, status
 from .. import game_constants
+from ..enums.unit_type import UnitType
 import random
 
 
 class GameService:
-    def __init__(self, game_repository: GameRepository, player_repository: PlayerRepository):
+    def __init__(self, game_repository: GameRepository, player_repository: PlayerRepository, unit_repository: UnitRepository):
         self.game_repo = game_repository
         self.player_repo = player_repository
+        self.unit_repo = unit_repository
 
 
-    async def place_unit(self, game_id: str, username: str, unit_type: str) -> dict:
-        """Разместить юнита"""
+    async def place_unit(self, game_id: str, username: str, unit_type: UnitType) -> dict:
+        """Разместить юнита (автоматически на поле или скамейку)"""
         game = await self.game_repo.get_game(game_id)
 
         if not game or game.phase != game_constants.GamePhases.PLANNING.value:
@@ -26,7 +28,7 @@ class GameService:
             player = game.player2
 
         # Проверяем монеты
-        unit_cost = game_constants.UNIT_COSTS.get(unit_type, 3)
+        unit_cost = await self._get_unit_cost(unit_type)
         if player.coins < unit_cost:
             return {"success": False, "error": "Not enough coins"}
 
@@ -72,7 +74,7 @@ class GameService:
             location = "bench"
 
         # Создаем юнита
-        unit = self._create_unit(unit_type, username, x, y, location)
+        unit = await self._create_unit(unit_type, username, x, y, location)
         game.units.append(unit)
 
         # Списываем монеты
@@ -84,9 +86,16 @@ class GameService:
         # Сохраняем
         await self.game_repo.update_game(game)
 
-        # Уведомляем игроков
+        # Уведомляем игроков - ВСЕГДА отправляем unit_placed
+        await self.game_repo.publish_to_game(game_id, {
+            "type": "unit_placed",
+            "unit": unit.model_dump(),
+            "player": username,
+            "coins_left": player.coins
+        })
+
+        # Если произошел автомердж - отправляем дополнительно auto_merge
         if merged_unit:
-            # Произошел автомердж
             await self.game_repo.publish_to_game(game_id, {
                 "type": "auto_merge",
                 "merged_unit": merged_unit.model_dump(),
@@ -95,44 +104,40 @@ class GameService:
             })
             return {"success": True, "unit_id": merged_unit.id, "merged": True}
         else:
-            # Обычное размещение
-            await self.game_repo.publish_to_game(game_id, {
-                "type": "unit_placed",
-                "unit": unit.model_dump(),
-                "player": username,
-                "coins_left": player.coins
-            })
             return {"success": True, "unit_id": unit.id, "location": location, "position_x": x, "position_y": y}
 
 
-    def _get_unit_cost(self, unit_type: str) -> int:
-        """Получить стоимость юнита"""
-        costs = {
-            "warrior": 3,
-            "archer": 4,
-            "mage": 5
-        }
-        return costs.get(unit_type, 3)
+    async def _get_unit_cost(self, unit_type: UnitType) -> int:
+        """Получить стоимость юнита из БД"""
+        unit_config = await self.unit_repo.get_by_type(unit_type)
+        if not unit_config:
+            return 3  # Дефолтная стоимость если не найден
+        return unit_config.mana_cost
 
 
-    def _create_unit(self, unit_type: str, owner: str, x: int, y: int, location: str = "board") -> Unit:
-        """Создать юнита с базовыми характеристиками"""
-        unit_stats = game_constants.UNIT_STATS.get(unit_type, game_constants.UNIT_STATS["warrior"])
-
+    async def _create_unit(self, unit_type: UnitType, owner: str, x: int, y: int, location: str = "board") -> Unit:
+        """Создать юнита с характеристиками из БД"""
+        unit_config = await self.unit_repo.get_by_type(unit_type)
+        
+        if not unit_config:
+            raise ValueError(f"Unit type '{unit_type.value}' not found in database")
+        
         return Unit(
             id=str(uuid.uuid4()),
-            type=unit_type,
+            type=unit_type.value,
             level=1,
-            hp=unit_stats["hp"],
-            max_hp=unit_stats["hp"],
-            attack=unit_stats["attack"],
-            attack_speed=unit_stats["attack_speed"],
-            range=unit_stats["range"],
-            move_speed=unit_stats["move_speed"],
-            position_x=x,
-            position_y=y,
+            hp=unit_config.hp,
+            max_hp=unit_config.hp,
+            attack=unit_config.attack,
+            attack_speed=unit_config.attack_speed,
+            range=int(unit_config.attack_range),
+            move_speed=unit_config.move_speed,
+            position_x=float(x) + 0.5,  # Центр клетки
+            position_y=float(y) + 0.5,  # Центр клетки
             owner=owner,
-            location=location
+            location=location,
+            crit_chance=unit_config.crit_chance,
+            crit_damage=unit_config.crit_damage
         )
 
 
@@ -156,14 +161,20 @@ class GameService:
             # Берем первого для слияния с новым
             unit1 = matching_units[0]
             
+            # Получаем конфигурацию юнита из БД
+            unit_type = UnitType(new_unit.type)
+            unit_config = await self.unit_repo.get_by_type(unit_type)
+            
+            if not unit_config:
+                return None
+            
             # Создаем нового юнита следующего уровня
             new_level = new_unit.level + 1
-            base_stats = game_constants.UNIT_STATS.get(new_unit.type)
             
             # Увеличиваем характеристики (формула: base * 2^(level-1))
             multiplier = 2 ** (new_level - 1)
-            new_hp = int(base_stats["hp"] * multiplier)
-            new_attack = int(base_stats["attack"] * multiplier)
+            new_hp = int(unit_config.hp * multiplier)
+            new_attack = int(unit_config.attack * multiplier)
             
             # Создаем улучшенного юнита на позиции первого
             merged_unit = Unit(
@@ -173,13 +184,15 @@ class GameService:
                 hp=new_hp,
                 max_hp=new_hp,
                 attack=new_attack,
-                attack_speed=base_stats["attack_speed"],
-                range=base_stats["range"],
-                move_speed=base_stats["move_speed"],
+                attack_speed=unit_config.attack_speed,
+                range=int(unit_config.attack_range),
+                move_speed=unit_config.move_speed,
                 position_x=unit1.position_x,
                 position_y=unit1.position_y,
                 owner=username,
-                location=unit1.location
+                location=unit1.location,
+                crit_chance=unit_config.crit_chance,
+                crit_damage=unit_config.crit_damage
             )
             
             # Удаляем два старых юнита
@@ -189,7 +202,8 @@ class GameService:
             game.units.append(merged_unit)
             
             # Рекурсивно проверяем еще раз (может быть цепочка мерджей)
-            return await self._check_auto_merge(game, username, merged_unit)
+            next_merge = await self._check_auto_merge(game, username, merged_unit)
+            return next_merge if next_merge else merged_unit
         
         return None
 
@@ -332,7 +346,7 @@ class GameService:
             player = game.player2
 
         # Возвращаем 50% стоимости юнита
-        unit_cost = self._get_unit_cost(unit.type)
+        unit_cost = await self._get_unit_cost(UnitType(unit.type))
         refund = unit_cost // 2
         player.coins += refund
 
@@ -352,96 +366,6 @@ class GameService:
         })
 
         return {"success": True, "refund": refund, "coins_left": player.coins}
-
-
-    async def merge_units(self, game_id: str, username: str, unit_id_1: str, unit_id_2: str) -> dict:
-        """Слить два юнита в один более высокого уровня"""
-        game = await self.game_repo.get_game(game_id)
-
-        if not game or game.phase != game_constants.GamePhases.PLANNING.value:
-            return {"success": False, "error": "Invalid game state"}
-
-        # Находим оба юнита
-        unit1 = None
-        unit2 = None
-        unit1_index = None
-        unit2_index = None
-        
-        for i, unit in enumerate(game.units):
-            if unit.id == unit_id_1:
-                unit1 = unit
-                unit1_index = i
-            if unit.id == unit_id_2:
-                unit2 = unit
-                unit2_index = i
-
-        if not unit1 or not unit2:
-            return {"success": False, "error": "One or both units not found"}
-
-        # Проверяем что оба юнита принадлежат игроку
-        if unit1.owner != username or unit2.owner != username:
-            return {"success": False, "error": "Not your units"}
-
-        # Проверяем что юниты одного типа
-        if unit1.type != unit2.type:
-            return {"success": False, "error": "Units must be of the same type"}
-
-        # Проверяем что юниты одного уровня
-        if unit1.level != unit2.level:
-            return {"success": False, "error": "Units must be of the same level"}
-        
-        # Проверяем максимальный уровень
-        if unit1.level >= 4:
-            return {"success": False, "error": "Units are already at max level"}
-
-        # Создаем нового юнита следующего уровня
-        new_level = unit1.level + 1
-        base_stats = game_constants.UNIT_STATS.get(unit1.type)
-        
-        # Увеличиваем характеристики
-        multiplier = 2 ** (new_level - 1)
-        new_hp = int(base_stats["hp"] * multiplier)
-        new_attack = int(base_stats["attack"] * multiplier)
-        
-        # Берем позицию первого юнита
-        new_unit = Unit(
-            id=str(uuid.uuid4()),
-            type=unit1.type,
-            level=new_level,
-            hp=new_hp,
-            max_hp=new_hp,
-            attack=new_attack,
-            attack_speed=base_stats["attack_speed"],
-            range=base_stats["range"],
-            move_speed=base_stats["move_speed"],
-            position_x=unit1.position_x,
-            position_y=unit1.position_y,
-            owner=username,
-            location=unit1.location
-        )
-
-        # Удаляем старых юнитов
-        if unit1_index > unit2_index:
-            game.units.pop(unit1_index)
-            game.units.pop(unit2_index)
-        else:
-            game.units.pop(unit2_index)
-            game.units.pop(unit1_index)
-
-        # Добавляем нового юнита
-        game.units.append(new_unit)
-
-        await self.game_repo.update_game(game)
-
-        await self.game_repo.publish_to_game(game_id, {
-            "type": "units_merged",
-            "unit_id_1": unit_id_1,
-            "unit_id_2": unit_id_2,
-            "new_unit": new_unit.model_dump(),
-            "player": username
-        })
-        
-        return {"success": True, "new_unit": new_unit.model_dump()}
 
 
     async def start_planning_phase(self, game_id: str, start_timer: bool = False) -> dict:
@@ -481,6 +405,7 @@ class GameService:
     async def start_battle_phase(self, game_id: str) -> dict:
         """Начать фазу боя"""
         import asyncio
+        from .battle.battle_simulator import BattleSimulator
         
         game = await self.game_repo.get_game(game_id)
 
@@ -502,21 +427,145 @@ class GameService:
             "round": game.round
         })
 
-        # TODO: Запустить BattleSimulator
-        # Пока заглушка - ждем 2 секунды
-        print(f"⚔️  Battle phase started for game {game_id}, waiting 2 seconds...")
-        await asyncio.sleep(2)
+        # Запускаем симуляцию боя
+        print(f"⚔️  Battle phase started for game {game_id}, running simulation...")
+        battle_simulator = BattleSimulator(self.unit_repo)
+        battle_result = await battle_simulator.simulate(game)
+        
+        print(f"⚔️  Battle simulation completed:")
+        print(f"   Winner: {battle_result.winner}")
+        print(f"   Duration: {battle_result.duration:.1f}s")
+        print(f"   Player1 alive: {battle_result.player1_alive}")
+        print(f"   Player2 alive: {battle_result.player2_alive}")
+        print(f"   Total events: {len(battle_result.events)}")
+        
+        # Выводим краткую статистику событий
+        event_types = {}
+        for event in battle_result.events:
+            event_types[event.type] = event_types.get(event.type, 0) + 1
+        print(f"   Events breakdown: {event_types}")
+        
+        # Восстанавливаем HP всех юнитов в game.units (симуляция работала с копиями)
+        for unit in game.units:
+            unit.hp = unit.max_hp
+        
+        print(f"   HP restored for all units in game state")
+        
+        # Отправляем события боя клиентам
+        await self.game_repo.publish_to_game(game_id, {
+            "type": "battle_events",
+            "events": [event.model_dump() for event in battle_result.events]
+        })
+
+        # Анимация боя
+        wait_time = battle_result.duration + 2.0
+        print(f"   Waiting {wait_time:.1f}s for clients to replay battle...")
+        await asyncio.sleep(wait_time)
+        
+
+        # Считаем живых юнитов на поле (из результата боя)
+        player1_alive = battle_result.player1_alive
+        player2_alive = battle_result.player2_alive
+
+        # Определяем победителя раунда и рассчитываем урон
+        # Бой идет до конца - пока все юниты одной стороны не умрут
+        round_winner = None
+        damage_to_player1 = damage_to_player2 = 0
+        
+        if player1_alive > 0 and player2_alive == 0:
+            # Player 1 победил раунд
+            round_winner = game.player1.username
+            damage_to_player2 = player1_alive + 1
+
+        elif player2_alive > 0 and player1_alive == 0:
+            # Player 2 победил раунд
+            round_winner = game.player2.username
+            damage_to_player1 = player2_alive + 1
+
+        else:
+            # Ничья раунда (все юниты обеих сторон мертвы)
+            round_winner = "draw"
+            damage_to_player1 = 1
+            damage_to_player2 = 1
+        
+        # Наносим урон
+        game.player1.hp -= damage_to_player1
+        game.player2.hp -= damage_to_player2
+        
+        # Проверяем условие победы
+        game_winner = None
+        game_ended = False
+        
+        if game.player1.hp <= 0 and game.player2.hp <= 0:
+            # Ничья
+            game_winner = "draw"
+            game_ended = True
+            game.status = game_constants.GameStatus.ENDED.value
+
+        elif game.player1.hp <= 0:
+            # Player 2 победил
+            game_winner = game.player2.username
+            game_ended = True
+            game.status = game_constants.GameStatus.ENDED.value
+            game.winner = game.player2.username
+
+        elif game.player2.hp <= 0:
+            # Player 1 победил
+            game_winner = game.player1.username
+            game_ended = True
+            game.status = game_constants.GameStatus.ENDED.value
+            game.winner = game.player1.username
+        
+        # Сохраняем изменения
+        await self.game_repo.update_game(game)
         
         # Уведомляем о конце боя
         await self.game_repo.publish_to_game(game_id, {
             "type": "battle_phase_end",
             "round": game.round,
-            "winner": None  # Пока никто не побеждает
+            "round_winner": round_winner,
+            "damage_to_player1": damage_to_player1,
+            "damage_to_player2": damage_to_player2,
+            "player1_hp": game.player1.hp,
+            "player2_hp": game.player2.hp
         })
         
         print(f"⚔️  Battle phase ended for game {game_id}")
         
-        # Автоматически запускаем следующий раунд планирования с таймером
-        await self.start_planning_phase(game_id, start_timer=True)
+        if game_ended:
+            # Игра завершена
+            await self.game_repo.publish_to_game(game_id, {
+                "type": "game_over",
+                "winner": game_winner,
+                "player1_hp": game.player1.hp,
+                "player2_hp": game.player2.hp
+            })
+            
+            print(f"🏆 Game {game_id} ended. Winner: {game_winner}")
+
+            
+            # Освобождаем игроков (удаляем привязки к игре)
+            await self.player_repo.remove_player_game(game.player1.username)
+            await self.player_repo.remove_player_game(game.player2.username)
+            print(f"   Players {game.player1.username} and {game.player2.username} are now free")
+            
+            # Удаляем игру из Redis через некоторое время (чтобы клиенты успели получить game_over)
+            import asyncio
+            async def cleanup_game():
+                await asyncio.sleep(5)  # Ждем 5 секунд
+                
+                # Удаляем игру
+                await self.game_repo.delete_game(game_id)
+                
+                # Удаляем список подключенных игроков
+                await self.game_repo.redis.delete(f"game:{game_id}:connected")
+                
+                print(f"   Game {game_id} fully removed from Redis")
+            
+            # Запускаем cleanup в фоне
+            asyncio.create_task(cleanup_game())
+        else:
+            # Игра продолжается - следующий раунд
+            await self.start_planning_phase(game_id, start_timer=True)
 
         return {"success": True}

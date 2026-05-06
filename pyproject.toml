@@ -12,6 +12,7 @@ dependencies = [
     "booktype>=1.5",
     "fastapi>=0.135.3",
     "ipykernel>=7.2.0",
+    "psycopg2-binary>=2.9.12",
     "pydantic>=2.13.1",
     "pydantic-settings>=2.13.1",
     "pyjwt>=2.12.1",

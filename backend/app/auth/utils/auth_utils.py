@@ -6,12 +6,11 @@ from dotenv import load_dotenv
 import os
 from jwt import InvalidTokenError
 from ..models import TokenData
-from ...config import get_settings
+from ...config import settings
 from ...models import User
 load_dotenv()
 
 
-settings = get_settings()
 TOKEN_TYPE_FIELD = "type"
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"

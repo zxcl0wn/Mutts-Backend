@@ -23,6 +23,11 @@ class PlayerRepository(BaseRedisRepository):
         return await self.redis.scard("matchmaking_queue")
 
 
+    async def is_in_queue(self, username: str) -> bool:
+        """Проверить находится ли игрок в очереди"""
+        return await self.redis.sismember("matchmaking_queue", username)
+
+
     async def pop_players(self, count: int) -> list[str]:
         """Взять N игроков из очереди"""
         players = await self.redis.spop("matchmaking_queue", count)

@@ -28,26 +28,12 @@ MAX_UNITS_ON_BENCH = 4
 MAX_UNITS_TOTAL = 10  # На поле + на скамейке
 
 # Размер поля (общая доска)
-BOARD_SIZE_X = 5  # Ширина
-BOARD_SIZE_Y = 8  # Длина (5x8 = 40 клеток)
+BOARD_SIZE_X = 7  # Ширина
+BOARD_SIZE_Y = 8  # Длина (7x8 = 56 клеток)
 
 # Половины поля для каждого игрока
-PLAYER1_Y_RANGE = (0, 3)  # Player 1: y от 0 до 3 (4 клетки)
-PLAYER2_Y_RANGE = (4, 7)  # Player 2: y от 4 до 7 (4 клетки)
-
-# Стоимость юнитов
-UNIT_COSTS = {
-    "warrior": 3,
-    "archer": 4,
-    "mage": 5
-}
-
-# Характеристики юнитов
-UNIT_STATS = {
-    "warrior": {"hp": 100, "attack": 20, "range": 1, "attack_speed": 1.0, "move_speed": 2.0},
-    "archer": {"hp": 60, "attack": 15, "range": 5, "attack_speed": 1.5, "move_speed": 2.5},
-    "mage": {"hp": 50, "attack": 30, "range": 6, "attack_speed": 0.8, "move_speed": 2.0}
-}
+PLAYER1_Y_RANGE = (0, 3)  # Player 1: y от 0 до 3 (7x4 = 28 клеток)
+PLAYER2_Y_RANGE = (4, 7)  # Player 2: y от 4 до 7 (7x4 = 28 клеток)
 
 # Игровые правила
 SELL_REFUND_PERCENT = 50

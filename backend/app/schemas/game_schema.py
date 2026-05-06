@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from .player import PlayerState
-from .unit import Unit
+from .player_schema import PlayerState
+from .unit_schema import Unit
 from .. import game_constants
 
 

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     auth_jwt: AuthJWT = AuthJWT()
     redis: RedisSettings = RedisSettings()
 
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+settings = get_settings()

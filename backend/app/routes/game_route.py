@@ -7,6 +7,7 @@ from ..repositories import GameRepository
 from fastapi import HTTPException, status
 from ..core.redis import get_redis
 from ..core.timer_manager import timer_manager
+from ..enums.unit_type import UnitType
 import json
 import asyncio
 
@@ -98,31 +99,65 @@ async def game_websocket(
 
                 # Обработка разных типов сообщений
                 if data["type"] == "place_unit":
-                    result = await game_service.place_unit(
-                        game_id, username,
-                        data["unit_type"]
-                    )
-                    # GameService сделал publish_to_game, все получат уведомление
+                    try:
+                        unit_type = UnitType(data["unit_type"])
+                    except ValueError:
+                        await websocket.send_json({
+                            "success": False,
+                            "error": f"Invalid unit type: {data['unit_type']}"
+                        })
+                        continue
+                    
+                    try:
+                        result = await game_service.place_unit(
+                            game_id, username,
+                            unit_type
+                        )
+                        # Отправляем результат клиенту если операция не удалась
+                        if not result.get("success", True):
+                            await websocket.send_json(result)
+                    except Exception as e:
+                        await websocket.send_json({
+                            "success": False,
+                            "error": str(e)
+                        })
 
                 elif data["type"] == "move_unit":
-                    result = await game_service.move_unit(
-                        game_id, username,
-                        data["unit_id"], data["x"], data["y"], data["location"]
-                    )
+                    try:
+                        result = await game_service.move_unit(
+                            game_id, username,
+                            data["unit_id"], data["x"], data["y"], data["location"]
+                        )
+                        # Отправляем результат клиенту если операция не удалась
+                        if not result.get("success", True):
+                            await websocket.send_json(result)
+                    except Exception as e:
+                        await websocket.send_json({
+                            "success": False,
+                            "error": str(e)
+                        })
 
                 elif data["type"] == "sell_unit":
-                    result = await game_service.sell_unit(
-                        game_id, username,
-                        data["unit_id"]
-                    )
+                    try:
+                        result = await game_service.sell_unit(
+                            game_id, username,
+                            data["unit_id"]
+                        )
+                        # Отправляем результат клиенту если операция не удалась
+                        if not result.get("success", True):
+                            await websocket.send_json(result)
+                    except Exception as e:
+                        await websocket.send_json({
+                            "success": False,
+                            "error": str(e)
+                        })
 
-                elif data["type"] == "merge_units":
-                    result = await game_service.merge_units(
-                        game_id, username,
-                        data["unit_id_1"], data["unit_id_2"]
-                    )
-
-                # TODO: Добавить другие типы сообщений
+                else:
+                    # Неизвестный тип сообщения
+                    await websocket.send_json({
+                        "success": False,
+                        "error": f"Unknown message type: {data.get('type', 'missing')}"
+                    })
 
         except WebSocketDisconnect:
             print(f"✗ {username} disconnected from game {game_id}")
@@ -133,7 +168,18 @@ async def game_websocket(
             await pubsub.unsubscribe(f"game:{game_id}")
             if username:
                 await game_repo.remove_connected_player(game_id, username)
-                # TODO: Обработать отключение игрока (пауза игры, автопроигрыш и т.д.)
+                
+                # Проверяем сколько игроков осталось подключено
+                connected_count = await game_repo.get_connected_count(game_id)
+                
+                if connected_count < 2:
+                    # Уведомляем оставшегося игрока об отключении
+                    await game_repo.publish_to_game(game_id, {
+                        "type": "player_disconnected",
+                        "player": username,
+                        "message": f"{username} disconnected from the game"
+                    })
+                    print(f"⚠️  {username} disconnected, {connected_count} player(s) remaining")
 
     except HTTPException as e:
         await websocket.close(code=e.status_code, reason=e.detail)
