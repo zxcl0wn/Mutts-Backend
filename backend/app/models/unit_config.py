@@ -18,7 +18,7 @@ class UnitConfig(Base):
     attack = Column(Integer, nullable=False)
 
     attack_speed = Column(Float, nullable=False)
-    attack_range = Column(Integer, nullable=False)  # TODO: Change to Integer
+    attack_range = Column(Integer, nullable=False)
     attack_type = Column(SQLEnum(AttackType), nullable=False)
     # projectile_speed = Column(Float, nullable=True)
 

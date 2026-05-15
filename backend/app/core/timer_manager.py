@@ -7,10 +7,10 @@ from .. import game_constants
 
 class TimerManager:
     """Управление таймерами для игр"""
-    
+
     def __init__(self):
         self.active_timers: Dict[str, asyncio.Task] = {}
-    
+
     
     async def start_planning_timer(
         self, 

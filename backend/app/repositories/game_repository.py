@@ -16,7 +16,8 @@ class GameRepository(BaseRedisRepository):
             "phase": game_state.phase,
             "round": game_state.round,
             "timer": game_state.timer,
-            "status": game_state.status
+            "status": game_state.status,
+            "winner": game_state.winner
         }
 
         await self._set_hash(key, data, expire=3600)

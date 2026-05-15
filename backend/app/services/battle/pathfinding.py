@@ -60,7 +60,7 @@ class Pathfinding:
         dx_norm = dx / distance
         dy_norm = dy / distance
         
-        # Двигаемся (но не дальше чем до цели)
+        # Двигаемся
         move_distance = min(unit.move_speed * delta_time, distance)
         unit.position_x += dx_norm * move_distance
         unit.position_y += dy_norm * move_distance

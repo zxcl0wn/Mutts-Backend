@@ -163,8 +163,8 @@ ws.onclose = () => {
 {
   "type": "unit_moved",
   "unit_id": "abc-123",
-  "x": 3.5,
-  "y": 2.5,
+  "x": 3,
+  "y": 2,
   "location": "bench/board",
   "player": "player1"
 }

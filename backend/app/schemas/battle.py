@@ -11,6 +11,7 @@ class BattleEvent(BaseModel):
     crit: bool | None = None
     position: tuple[float, float] | None = None
 
+
 class BattleResult(BaseModel):
     """Результат симуляции боя"""
     events: list[BattleEvent]

@@ -20,7 +20,7 @@ class GameService:
 
         if not game or game.phase != game_constants.GamePhases.PLANNING.value:
             return {"success": False, "error": "Invalid game state"}
-
+    
         # Определяем игрока
         if game.player1.username == username:
             player = game.player1

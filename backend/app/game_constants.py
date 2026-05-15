@@ -18,6 +18,7 @@ class UnitLocation(Enum):
 
 # Время
 PLANNING_TIME = 20
+
 NEW_ROUND_COINS = 5
 INITIAL_COINS = 10  # Начальные монеты
 INITIAL_HP = 100    # Начальное HP

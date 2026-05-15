@@ -249,10 +249,7 @@ class BattleSimulator:
                 details = f"cooldown {time_since_attack:.1f}/{unit.attack_speed}s | Dist: {grid_dist} | Pos: ({unit.position_x:.1f}, {unit.position_y:.1f}) | OnGrid: {is_on_grid}"
         
         print(f"   [{unit.owner}] {unit.type} (lvl {unit.level}, id={unit.id[:8]}) | HP: {unit.hp}/{unit.max_hp} | {action} {details}")
-    
-    def _log_event(self, event: BattleEvent, unit: Unit):
-        """Вывести событие в консоль (устаревший метод, не используется)"""
-        pass
+
     
     def _check_battle_end(self, player1_units: list[Unit], player2_units: list[Unit]) -> bool:
         """Проверка окончания боя"""

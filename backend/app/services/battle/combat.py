@@ -12,15 +12,12 @@ class CombatSystem:
     
     def attack(self, attacker: Unit, target: Unit, current_time: float) -> tuple[BattleEvent, int]:
         """
-        Выполнить атаку (БЕЗ применения урона)
-        
-        Возвращает событие атаки и урон (урон нужно применить позже)
+        Выполнить атаку.
+        Возвращает событие атаки и урон
         """
         # Рассчитываем урон
         damage = self.calculate_damage(attacker)
-        
-        # НЕ наносим урон сразу! Вернем его для применения позже
-        
+
         # Запоминаем время атаки
         attacker.last_attack_time = current_time
         
