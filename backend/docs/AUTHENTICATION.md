@@ -108,11 +108,11 @@ Content-Type: application/json
 ### Query параметр (рекомендуется для WebSocket)
 
 ```
-ws://localhost:8000/ws/game/{game_id}?access_token={token}
+ws://193.53.40.62:8000/ws/game/{game_id}?access_token={token}
 ```
 
 ```
-http://localhost:8000/matchmaking/join?access_token={token}
+http://193.53.40.62:8000/matchmaking/join?access_token={token}
 ```
 
 ### Authorization header (альтернатива)
@@ -155,7 +155,7 @@ Access токен содержит:
 
 ```javascript
 // Логин
-const response = await fetch('http://localhost:8000/auth/login', {
+const response = await fetch('http://193.53.40.62:8000/auth/login', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -171,7 +171,7 @@ localStorage.setItem('access_token', accessToken);
 
 // Использовать токен
 const gameResponse = await fetch(
-  `http://localhost:8000/matchmaking/join?access_token=${accessToken}`,
+  `http://193.53.40.62:8000/matchmaking/join?access_token=${accessToken}`,
   { method: 'POST' }
 );
 ```
@@ -181,6 +181,6 @@ const gameResponse = await fetch(
 ```javascript
 const token = localStorage.getItem('access_token');
 const ws = new WebSocket(
-  `ws://localhost:8000/ws/game/${gameId}?access_token=${token}`
+  `ws://193.53.40.62:8000/ws/game/${gameId}?access_token=${token}`
 );
 ```

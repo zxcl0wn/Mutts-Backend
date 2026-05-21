@@ -129,7 +129,7 @@ POST /matchmaking/leave?access_token={token}
 Интерактивная документация доступна по адресу:
 
 ```
-http://localhost:8000/docs
+http://193.53.40.62:8000/docs
 ```
 
 ---
@@ -140,17 +140,17 @@ http://localhost:8000/docs
 
 ```bash
 # Регистрация
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://193.53.40.62:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"player1","password":"password123"}'
 
 # Логин
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://193.53.40.62:8000/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=player1&password=password123"
 
 # Матчмейкинг
-curl -X POST "http://localhost:8000/matchmaking/join?access_token=eyJhbGc..."
+curl -X POST "http://193.53.40.62:8000/matchmaking/join?access_token=eyJhbGc..."
 ```
 
 ### JavaScript (Fetch)
@@ -158,7 +158,7 @@ curl -X POST "http://localhost:8000/matchmaking/join?access_token=eyJhbGc..."
 ```javascript
 // Регистрация
 const register = async (username, password) => {
-  const response = await fetch('http://localhost:8000/auth/register', {
+  const response = await fetch('http://193.53.40.62:8000/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
@@ -168,7 +168,7 @@ const register = async (username, password) => {
 
 // Логин
 const login = async (username, password) => {
-  const response = await fetch('http://localhost:8000/auth/login', {
+  const response = await fetch('http://193.53.40.62:8000/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `username=${username}&password=${password}`
@@ -179,7 +179,7 @@ const login = async (username, password) => {
 // Матчмейкинг
 const joinMatchmaking = async (token) => {
   const response = await fetch(
-    `http://localhost:8000/matchmaking/join?access_token=${token}`,
+    `http://193.53.40.62:8000/matchmaking/join?access_token=${token}`,
     { method: 'POST' }
   );
   return response.json();
@@ -193,19 +193,19 @@ import requests
 
 # Регистрация
 response = requests.post(
-    'http://localhost:8000/auth/register',
+    'http://193.53.40.62:8000/auth/register',
     json={'username': 'player1', 'password': 'password123'}
 )
 
 # Логин
 response = requests.post(
-    'http://localhost:8000/auth/login',
+    'http://193.53.40.62:8000/auth/login',
     data={'username': 'player1', 'password': 'password123'}
 )
 token = response.json()['access_token']
 
 # Матчмейкинг
 response = requests.post(
-    f'http://localhost:8000/matchmaking/join?access_token={token}'
+    f'http://193.53.40.62:8000/matchmaking/join?access_token={token}'
 )
 ```

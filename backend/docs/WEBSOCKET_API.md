@@ -11,7 +11,7 @@ WebSocket используется для реалтайм игрового вз
 ### URL
 
 ```
-ws://localhost:8000/ws/game/{game_id}?access_token={token}
+ws://193.53.40.62:8000/ws/game/{game_id}?access_token={token}
 ```
 
 **Параметры:**
@@ -25,7 +25,7 @@ const gameId = "abc-123-def-456";
 const token = localStorage.getItem('access_token');
 
 const ws = new WebSocket(
-  `ws://localhost:8000/ws/game/${gameId}?access_token=${token}`
+  `ws://193.53.40.62:8000/ws/game/${gameId}?access_token=${token}`
 );
 
 ws.onopen = () => {
@@ -381,7 +381,7 @@ ws.onclose = () => {
 ### Полный игровой цикл
 
 ```javascript
-const ws = new WebSocket(`ws://localhost:8000/ws/game/${gameId}?access_token=${token}`);
+const ws = new WebSocket(`ws://193.53.40.62:8000/ws/game/${gameId}?access_token=${token}`);
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);

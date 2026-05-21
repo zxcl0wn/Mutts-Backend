@@ -14,7 +14,7 @@
 
 ```bash
 # Регистрация
-POST http://localhost:8000/auth/register
+POST http://193.53.40.62:8000/auth/register
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 }
 
 # Логин
-POST http://localhost:8000/auth/login
+POST http://193.53.40.62:8000/auth/login
 Content-Type: application/x-www-form-urlencoded
 
 username=player1&password=password123
@@ -39,7 +39,7 @@ username=player1&password=password123
 ### 2. Матчмейкинг
 
 ```bash
-POST http://localhost:8000/matchmaking/join?access_token={token}
+POST http://193.53.40.62:8000/matchmaking/join?access_token={token}
 
 # Через 1-2 секунды игра создастся автоматически
 ```
@@ -48,7 +48,7 @@ POST http://localhost:8000/matchmaking/join?access_token={token}
 
 ```javascript
 const ws = new WebSocket(
-  `ws://localhost:8000/ws/game/{game_id}?access_token={token}`
+  `ws://193.53.40.62:8000/ws/game/{game_id}?access_token={token}`
 );
 
 ws.onmessage = (event) => {
