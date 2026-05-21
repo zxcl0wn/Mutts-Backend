@@ -5,7 +5,7 @@ from .. import game_constants
 
 
 class MatchmakingService:
-    def __init__(self, player_repo: PlayerRepository, game_repo: GameRepository):
+    def __init__(self, player_repo: PlayerRepository, game_repo: GameRepository) -> None:
         self.player_repo = player_repo
         self.game_repo = game_repo
 
@@ -15,16 +15,21 @@ class MatchmakingService:
         # Проверяем что игрок не в активной игре
         game_id = await self.player_repo.get_player_game(username)
         if game_id:
-            return {"success": False, "error": "Already in game"}
-        
+            return {
+                "success": False,
+                "error": "Already in game"
+            }
+
         # Добавляем в очередь
         success = await self.player_repo.add_to_queue(username)
         if not success:
-            return {"success": False, "error": "Already in queue"}
+            return {
+                "success": False,
+                "error": "Already in queue"
+            }
         
         # Получаем размер очереди
         queue_size = await self.player_repo.get_queue_size()
-        
         return {
             "success": True,
             "status": "searching",
@@ -35,7 +40,10 @@ class MatchmakingService:
     async def leave_queue(self, username: str) -> dict:
         """Выйти из очереди поиска"""
         await self.player_repo.remove_from_queue(username)
-        return {"success": True, "status": "cancelled"}
+        return {
+            "success": True,
+            "status": "cancelled"
+        }
 
 
     async def get_queue_status(self, username: str) -> dict:
@@ -63,10 +71,9 @@ class MatchmakingService:
         }
 
 
-    async def find_match(self) -> tuple[str, str] | None:
+    async def find_match(self) -> tuple[str, str]|None: # TODO: подбор по рейтингу
         """Найти пару игроков из очереди"""
         queue_size = await self.player_repo.get_queue_size()
-        
         if queue_size < 2:
             return None
         

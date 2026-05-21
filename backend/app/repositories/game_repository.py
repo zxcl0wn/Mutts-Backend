@@ -47,7 +47,7 @@ class GameRepository(BaseRedisRepository):
 
     async def update_game(self, game_state: GameState):
         """Обновить состояние игры"""
-        await self.create_game(game_state)  # TODO: неэффективно
+        await self.create_game(game_state)
 
 
     async def delete_game(self, game_id: str):

@@ -26,7 +26,6 @@ async def game_websocket(
         game_repo: GameRepository = Depends(get_game_repository),
         redis: Redis = Depends(get_redis)
 ):
-    username = None
     try:
         # 1. Валидация
         username = await verify_token(access_token)
@@ -50,32 +49,22 @@ async def game_websocket(
         # 5. Проверяем все ли игроки подключились
         connected_count = await game_repo.get_connected_count(game_id)
         if connected_count == 2:
-            # Все подключились - можно стартовать игру
+            # Все подключились
             await game_repo.publish_to_game(game_id, {
                 "type": "all_players_connected"
             })
-            
 
-            await asyncio.sleep(1)
-            await game_repo.publish_to_game(game_id, {
-                "type": "countdown",
-                "value": 3
-            })
-            await asyncio.sleep(1)
-            await game_repo.publish_to_game(game_id, {
-                "type": "countdown",
-                "value": 2
-            })
-            await asyncio.sleep(1)
-            await game_repo.publish_to_game(game_id, {
-                "type": "countdown",
-                "value": 1
-            })
-            await asyncio.sleep(1)
+            for i in range(3, 0, -1):
+                await asyncio.sleep(1)
+                await game_repo.publish_to_game(game_id, {
+                    "type": "countdown",
+                    "value": i
+                })
+            else:
+                await asyncio.sleep(1)
             
             # Запускаем фазу планирования
             await game_service.start_planning_phase(game_id)
-            
             # Запускаем таймер
             await timer_manager.start_planning_timer(game_id, game_service, game_repo)
 
@@ -113,7 +102,6 @@ async def game_websocket(
                             game_id, username,
                             unit_type
                         )
-                        # Отправляем результат клиенту если операция не удалась
                         if not result.get("success", True):
                             await websocket.send_json(result)
                     except Exception as e:
@@ -128,7 +116,6 @@ async def game_websocket(
                             game_id, username,
                             data["unit_id"], data["x"], data["y"], data["location"]
                         )
-                        # Отправляем результат клиенту если операция не удалась
                         if not result.get("success", True):
                             await websocket.send_json(result)
                     except Exception as e:
@@ -143,7 +130,6 @@ async def game_websocket(
                             game_id, username,
                             data["unit_id"]
                         )
-                        # Отправляем результат клиенту если операция не удалась
                         if not result.get("success", True):
                             await websocket.send_json(result)
                     except Exception as e:
@@ -161,14 +147,12 @@ async def game_websocket(
 
         except WebSocketDisconnect:
             print(f"✗ {username} disconnected from game {game_id}")
-
         finally:
             # Очистка при отключении
             listener_task.cancel()
             await pubsub.unsubscribe(f"game:{game_id}")
             if username:
                 await game_repo.remove_connected_player(game_id, username)
-                
                 # Проверяем сколько игроков осталось подключено
                 connected_count = await game_repo.get_connected_count(game_id)
                 

@@ -4,8 +4,6 @@ from fastapi import HTTPException, status
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
-from jwt import InvalidTokenError
-from ..models import TokenData
 from ...config import settings
 from ...models import User
 load_dotenv()
@@ -14,6 +12,7 @@ load_dotenv()
 TOKEN_TYPE_FIELD = "type"
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
+
 
 def get_password_hash(password: str) -> str:
     return hashpw(password.encode("utf-8"), gensalt()).decode("utf-8")
@@ -58,6 +57,7 @@ def create_jwt(
         TOKEN_TYPE_FIELD: token_type
     }
     jwt_payload.update(token_data)
+
     return encode_jwt(
         payload=jwt_payload,
         expire_minutes=expire_minutes,

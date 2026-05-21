@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .. import game_constants
 
 
@@ -15,11 +15,11 @@ class Unit(BaseModel):
     position_x: float
     position_y: float
     owner: str
-    target_id: str | None = None
+    target_id: str|None = None
     location: str = game_constants.UnitLocation.BOARD.value
 
     last_attack_time: float = 0.0
-    crit_chance: float = 0.0
+    crit_chance: float = Field(ge=0.0, le=1.0)
     crit_damage: float = 1.5
 
     class Config:

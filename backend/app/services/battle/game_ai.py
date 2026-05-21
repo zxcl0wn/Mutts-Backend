@@ -6,24 +6,24 @@ from .pathfinding import Pathfinding
 
 
 class GameAI:
-    """AI юнитов (FSM - Finite State Machine)"""
+    """AI юнитов (FSM)"""
     
     def __init__(self):
         self.combat = CombatSystem()
         self.pathfinding = Pathfinding()
-    
+
+
     def update_unit(self, unit: Unit, enemies: list[Unit], delta_time: float,
-                    current_time: float, events: list[BattleEvent]) -> tuple[Unit, int] | None:
+                    current_time: float, events: list[BattleEvent]) -> tuple[Unit, int]|None:
         """
-        Обновить состояние юнита (главный метод FSM)
-        
-        Возвращает (target, damage) если произошла атака, иначе None
+        Обновить состояние юнита.
+        Возвращает если произошла атака, иначе None
         """
         # Пропускаем мертвых
         if unit.hp <= 0:
             return None
         
-        # Проверяем цель (жива ли)
+        # Проверяем жива ли цель
         if unit.target_id:
             target = self._find_unit_by_id(unit.target_id, enemies)
             if not target or target.hp <= 0:
@@ -76,12 +76,13 @@ class GameAI:
                 events.append(event)
         
         return None
+
     
-    def find_nearest_enemy(self, unit: Unit, enemies: list[Unit]) -> Unit | None:
+    def find_nearest_enemy(self, unit: Unit, enemies: list[Unit]) -> Unit|None:
         """Найти ближайшего живого врага"""
         nearest = None
         min_distance = float('inf')
-        
+
         for enemy in enemies:
             if enemy.hp <= 0:
                 continue
@@ -92,8 +93,9 @@ class GameAI:
                 nearest = enemy
         
         return nearest
-    
-    def _find_unit_by_id(self, unit_id: str, units: list[Unit]) -> Unit | None:
+
+
+    def _find_unit_by_id(self, unit_id: str, units: list[Unit]) -> Unit|None:
         """Найти юнита по ID"""
         for unit in units:
             if unit.id == unit_id:

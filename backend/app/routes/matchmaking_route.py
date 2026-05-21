@@ -26,7 +26,6 @@ async def join_queue(
             )
         
         return result
-    
     except HTTPException:
         raise
     except Exception as e:
@@ -46,7 +45,6 @@ async def leave_queue(
         username = await verify_token(access_token)
         result = await matchmaking_service.leave_queue(username)
         return result
-    
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

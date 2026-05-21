@@ -6,7 +6,7 @@ class PlayerState(BaseModel):
     username: str
     hp: int = 100
     coins: int = 10
-    max_units: int = 10  # Максимум юнитов на поле
+    max_units: int = 10
 
     class Config:
         from_attributes = True

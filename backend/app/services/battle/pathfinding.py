@@ -5,17 +5,16 @@ from ...schemas.battle import BattleEvent
 
 class Pathfinding:
     """Система движения юнитов"""
-    
-    def move_to_target(self, unit: Unit, target: Unit, delta_time: float, current_time: float) -> BattleEvent | None:
+
+    def move_to_target(self, unit: Unit, target: Unit, delta_time: float, current_time: float) -> BattleEvent|None:
         """
-        Двигать юнита к цели (плавное движение)
-        
-        Возвращает событие движения или None
+        Двигать юнита к цели.
+        Возвращает событие движения или None.
         """
         dx = target.position_x - unit.position_x
         dy = target.position_y - unit.position_y
         
-        distance = math.sqrt(dx**2 + dy**2)
+        distance = self.calculate_distance(unit, target)
         
         if distance < 0.01:
             # Уже на месте
@@ -37,8 +36,9 @@ class Pathfinding:
             unit_id=unit.id,
             position=(unit.position_x, unit.position_y)
         )
-    
-    def move_to_grid(self, unit: Unit, grid_x: int, grid_y: int, delta_time: float, current_time: float) -> BattleEvent | None:
+
+
+    def move_to_grid(self, unit: Unit, grid_x: int, grid_y: int, delta_time: float, current_time: float) -> BattleEvent|None:
         """
         Двигать юнита к центру клетки
         """
@@ -71,13 +71,15 @@ class Pathfinding:
             unit_id=unit.id,
             position=(unit.position_x, unit.position_y)
         )
-    
+
+
     def calculate_distance(self, unit1: Unit, unit2: Unit) -> float:
         """Евклидово расстояние между юнитами"""
         dx = unit2.position_x - unit1.position_x
         dy = unit2.position_y - unit1.position_y
         return math.sqrt(dx**2 + dy**2)
-    
+
+
     def calculate_grid_distance(self, unit1: Unit, unit2: Unit) -> int:
         """Чебышевское расстояние (по клеткам)"""
         grid_x1 = math.floor(unit1.position_x)
@@ -89,7 +91,8 @@ class Pathfinding:
         dy = abs(grid_y2 - grid_y1)
         
         return max(dx, dy)
-    
+
+
     def is_on_grid(self, unit: Unit) -> bool:
         """Проверить стоит ли юнит в центре клетки"""
         grid_x = math.floor(unit.position_x)
@@ -100,8 +103,9 @@ class Pathfinding:
         
         # Проверяем с небольшой погрешностью
         return abs(unit.position_x - center_x) < 0.01 and abs(unit.position_y - center_y) < 0.01
-    
-    def snap_to_grid(self, unit: Unit):
+
+
+    def snap_to_grid(self, unit: Unit) -> None:
         """Выровнять юнита на центр ближайшей клетки"""
         grid_x = math.floor(unit.position_x)
         grid_y = math.floor(unit.position_y)

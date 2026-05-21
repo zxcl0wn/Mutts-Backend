@@ -13,7 +13,7 @@ class PlayerRepository(BaseRedisRepository):
         return True
 
 
-    async def remove_from_queue(self, username: str):
+    async def remove_from_queue(self, username: str) -> None:
         """Убрать игрока из очереди"""
         await self.redis.srem("matchmaking_queue", username)
 
@@ -34,7 +34,7 @@ class PlayerRepository(BaseRedisRepository):
         return [p.decode() for p in players] if players else []
 
 
-    async def assign_game(self, username: str, game_id: str, expire: int = 3600):
+    async def assign_game(self, username: str, game_id: str, expire: int = 3600) -> None:
         """Привязать игрока к игре"""
         await self.redis.setex(f"player:{username}:game_id", expire, game_id)
 
@@ -45,12 +45,12 @@ class PlayerRepository(BaseRedisRepository):
         return game_id.decode() if game_id else None
 
 
-    async def remove_player_game(self, username: str):
+    async def remove_player_game(self, username: str) -> None:
         """Удалить привязку игрока к игре"""
         await self.redis.delete(f"player:{username}:game_id")
 
 
-    async def publish_to_player(self, username: str, message: dict):
+    async def publish_to_player(self, username: str, message: dict) -> None:
         """Отправить сообщение игроку"""
         await self.redis.publish(
             f"player:{username}",

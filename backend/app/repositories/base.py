@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from redis.asyncio import Redis
 from typing import Optional
 import json
@@ -9,7 +9,7 @@ class BaseRedisRepository(ABC):
         self.redis = redis_client
 
 
-    async def _set_hash(self, key: str, data: dict, expire: int = 60*60):
+    async def _set_hash(self, key: str, data: dict, expire: int = 60*60) -> None:
         """Сохранить hash в Redis"""
         serialized = {k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
                       for k, v in data.items()}
@@ -22,6 +22,7 @@ class BaseRedisRepository(ABC):
         data = await self.redis.hgetall(key)
         if not data:
             return None
+
         return {k.decode(): v.decode() for k, v in data.items()}
 
 

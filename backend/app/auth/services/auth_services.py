@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta, datetime, timezone
 from typing import Annotated
 from dotenv import load_dotenv
 import jwt
@@ -47,11 +46,12 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db:Asy
         token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
+
     user = await UserRepository(db).get_user_by_username(token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    return current_user
+# async def get_current_active_user(current_user: User = Depends(get_current_user)):
+#     return current_user

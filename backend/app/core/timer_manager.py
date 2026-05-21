@@ -82,11 +82,6 @@ class TimerManager:
             del self.active_timers[game_id]
             print(f"⏱️  Timer cancelled for game {game_id}")
     
-    
-    def get_active_timers(self) -> list[str]:
-        """Получить список игр с активными таймерами"""
-        return list(self.active_timers.keys())
-
 
 # Глобальный экземпляр
 timer_manager = TimerManager()

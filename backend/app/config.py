@@ -20,7 +20,7 @@ class AuthJWT(BaseModel):
 
 
 class RedisSettings(BaseModel):
-    url: str = "redis://localhost:6379/0"
+    url: str = os.getenv("REDIS_URL")
 
 
 class Settings(BaseSettings):

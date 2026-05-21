@@ -2,37 +2,33 @@ from ...schemas.game_schema import GameState
 from ...schemas.unit_schema import Unit
 from ...schemas.battle import BattleResult, BattleEvent
 from ...repositories.unit_repository import UnitRepository
-from ...enums.battle import UnitState
 from .game_ai import GameAI
 from .combat import CombatSystem
 
 # Константы симуляции
 STEP_DURATION = 0.1  # 100ms на шаг
-MAX_STEPS = 3000  # Максимум 300 секунд боя
+MAX_STEPS = 3000  # Максимум 300 секунд боя  # TODO: endless fight
 
 
 class BattleSimulator:
     """Главный класс симуляции боя"""
     
-    def __init__(self, unit_repository: UnitRepository):
+    def __init__(self, unit_repository: UnitRepository) -> None:
         self.unit_repo = unit_repository
         self.game_ai = GameAI()
         self.combat = CombatSystem()
-    
+
+
     async def simulate(self, game: GameState) -> BattleResult:
         """
-        Главный метод симуляции боя
-        
+        Главный метод симуляции боя;
         Возвращает BattleResult с событиями и победителем
         """
         # Инициализируем бой
         player1_units, player2_units = self._initialize_battle(game)
         
         # Запускаем главный цикл боя
-        events = self._run_battle_loop(player1_units, player2_units)
-        
-        # Определяем победителя
-        winner = self._determine_winner(player1_units, player2_units)
+        events, winner = self._run_battle_loop(player1_units, player2_units)
         
         # Подсчитываем живых
         player1_alive = sum(1 for u in player1_units if u.hp > 0)
@@ -48,15 +44,16 @@ class BattleSimulator:
             player2_alive=player2_alive,
             duration=duration
         )
-    
+
+
     def _initialize_battle(self, game: GameState) -> tuple[list[Unit], list[Unit]]:
         """Подготовить юнитов к бою"""
         import copy
         
-        # Фильтруем только юнитов на поле (не на скамейке)
-        all_units = [u for u in game.units if u.location == "board"]
+        # Фильтруем только юнитов на поле
+        all_units = [unit for unit in game.units if unit.location == "board"]
         
-        # Создаем КОПИИ юнитов для симуляции (чтобы не изменять оригиналы)
+        # Создаем копии юнитов для симуляции
         battle_units = [copy.deepcopy(unit) for unit in all_units]
         
         # Восстанавливаем HP всех юнитов перед боем
@@ -71,12 +68,13 @@ class BattleSimulator:
             unit._death_recorded = False
         
         # Разделяем по игрокам
-        player1_units = [u for u in battle_units if u.owner == game.player1.username]
-        player2_units = [u for u in battle_units if u.owner == game.player2.username]
-        
+        player1_units = [unit for unit in battle_units if unit.owner == game.player1.username]
+        player2_units = [unit for unit in battle_units if unit.owner == game.player2.username]
+
         return player1_units, player2_units
-    
-    def _run_battle_loop(self, player1_units: list[Unit], player2_units: list[Unit]) -> list[BattleEvent]:
+
+
+    def _run_battle_loop(self, player1_units: list[Unit], player2_units: list[Unit]) -> tuple[list[BattleEvent], str]:
         """Главный цикл боя"""
         events = []
         current_time = 0.0
@@ -105,9 +103,9 @@ class BattleSimulator:
             step += 1
             current_time += STEP_DURATION
             
-            # Считаем живых ДО обновления
-            p1_alive = sum(1 for u in player1_units if u.hp > 0)
-            p2_alive = sum(1 for u in player2_units if u.hp > 0)
+            # Считаем живых до обновления
+            p1_alive = sum(1 for unit in player1_units if unit.hp > 0)
+            p2_alive = sum(1 for unit in player2_units if unit.hp > 0)
             
             # Проверяем окончание боя
             if self._check_battle_end(player1_units, player2_units):
@@ -117,13 +115,14 @@ class BattleSimulator:
             # Выводим заголовок тика
             print(f"\n--- TICK {step} (t={current_time:.1f}s) | P1: {p1_alive} alive | P2: {p2_alive} alive ---")
             
-            # Собираем все атаки которые произойдут в этом тике (до применения урона)
+            # Собираем все атаки которые произойдут в этом тике
             pending_damage = []  # [(target, damage), ...]
             
             # Обновляем юнитов Player 1
             for unit in player1_units:
                 if unit.hp <= 0:
                     continue
+
                 events_before = len(events)
                 attack_result = self.game_ai.update_unit(unit, player2_units, STEP_DURATION, current_time, events)
                 
@@ -139,6 +138,7 @@ class BattleSimulator:
             for unit in player2_units:
                 if unit.hp <= 0:
                     continue
+
                 events_before = len(events)
                 attack_result = self.game_ai.update_unit(unit, player1_units, STEP_DURATION, current_time, events)
                 
@@ -150,7 +150,7 @@ class BattleSimulator:
                 # Выводим что делает юнит
                 self._log_unit_action(unit, player1_units, events[events_before:], current_time)
             
-            # Теперь применяем весь урон одновременно
+            # Применяем весь урон одновременно
             for target, damage in pending_damage:
                 self.combat.apply_damage(target, damage)
             
@@ -169,8 +169,8 @@ class BattleSimulator:
         ))
         
         # Итоговая статистика
-        p1_alive = sum(1 for u in player1_units if u.hp > 0)
-        p2_alive = sum(1 for u in player2_units if u.hp > 0)
+        p1_alive = sum(1 for unit in player1_units if unit.hp > 0)
+        p2_alive = sum(1 for unit in player2_units if unit.hp > 0)
         winner = self._determine_winner(player1_units, player2_units)
         
         print(f"\n{'='*80}")
@@ -194,9 +194,10 @@ class BattleSimulator:
         print(f"   Damage to Player 2: {damage_to_p2}")
         print(f"{'='*80}\n")
         
-        return events
-    
-    def _log_unit_action(self, unit: Unit, enemies: list[Unit], new_events: list[BattleEvent], current_time: float):
+        return events, winner
+
+
+    def _log_unit_action(self, unit: Unit, enemies: list[Unit], new_events: list[BattleEvent], current_time: float) -> None:
         """Вывести действие юнита в консоль"""
         # Находим цель
         target = None
@@ -253,16 +254,17 @@ class BattleSimulator:
     
     def _check_battle_end(self, player1_units: list[Unit], player2_units: list[Unit]) -> bool:
         """Проверка окончания боя"""
-        player1_alive = sum(1 for u in player1_units if u.hp > 0)
-        player2_alive = sum(1 for u in player2_units if u.hp > 0)
+        player1_alive = sum(1 for units in player1_units if units.hp > 0)
+        player2_alive = sum(1 for units in player2_units if units.hp > 0)
         
-        # Бой заканчивается когда у одного из игроков все юниты мертвы
+        # Бой заканчивается когда хотя бы у одного из игроков все юниты мертвы
         return player1_alive == 0 or player2_alive == 0
-    
+
+
     def _determine_winner(self, player1_units: list[Unit], player2_units: list[Unit]) -> str:
         """Определить победителя"""
-        player1_alive = sum(1 for u in player1_units if u.hp > 0)
-        player2_alive = sum(1 for u in player2_units if u.hp > 0)
+        player1_alive = sum(1 for units in player1_units if units.hp > 0)
+        player2_alive = sum(1 for units in player2_units if units.hp > 0)
         
         if player1_alive > 0 and player2_alive == 0:
             return "player1"

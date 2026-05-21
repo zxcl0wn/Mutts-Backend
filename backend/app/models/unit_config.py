@@ -20,7 +20,6 @@ class UnitConfig(Base):
     attack_speed = Column(Float, nullable=False)
     attack_range = Column(Integer, nullable=False)
     attack_type = Column(SQLEnum(AttackType), nullable=False)
-    # projectile_speed = Column(Float, nullable=True)
 
     crit_chance = Column(Float, nullable=False, default=0.0)
     crit_damage = Column(Float, nullable=False, default=2.0)

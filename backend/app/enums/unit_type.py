@@ -5,7 +5,3 @@ class UnitType(str, Enum):
     WARRIOR = "warrior"
     ARCHER = "archer"
     MAGE = "mage"
-    
-    # Добавляй новых юнитов здесь:
-    # TANK = "tank"
-    # ASSASSIN = "assassin"

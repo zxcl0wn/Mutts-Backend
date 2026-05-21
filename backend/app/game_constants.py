@@ -37,4 +37,4 @@ PLAYER1_Y_RANGE = (0, 3)  # Player 1: y от 0 до 3 (7x4 = 28 клеток)
 PLAYER2_Y_RANGE = (4, 7)  # Player 2: y от 4 до 7 (7x4 = 28 клеток)
 
 # Игровые правила
-SELL_REFUND_PERCENT = 50
+SELL_REFUND_PERCENT = 0,5

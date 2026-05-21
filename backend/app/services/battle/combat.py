@@ -9,7 +9,8 @@ class CombatSystem:
     def can_attack(self, attacker: Unit, current_time: float) -> bool:
         """Проверить может ли юнит атаковать (прошло ли достаточно времени)"""
         return current_time - attacker.last_attack_time >= attacker.attack_speed
-    
+
+
     def attack(self, attacker: Unit, target: Unit, current_time: float) -> tuple[BattleEvent, int]:
         """
         Выполнить атаку.
@@ -33,12 +34,14 @@ class CombatSystem:
         
         return event, damage
     
-    def apply_damage(self, target: Unit, damage: int):
+
+    def apply_damage(self, target: Unit, damage: int) -> None:
         """Применить урон к цели"""
         target.hp -= damage
-    
+
+
     def calculate_damage(self, attacker: Unit) -> int:
-        """Рассчитать урон (с учетом крита)"""
+        """Рассчитать урон (с учетом критического удара)"""
         damage = attacker.attack
         
         # Проверяем крит
@@ -46,11 +49,11 @@ class CombatSystem:
             damage = int(damage * attacker.crit_damage)
         
         return damage
-    
-    def check_death(self, unit: Unit, current_time: float) -> BattleEvent | None:
+
+
+    def check_death(self, unit: Unit, current_time: float) -> BattleEvent|None:
         """
-        Проверить смерть юнита
-        
+        Проверить смерть юнита.
         Возвращает событие смерти или None
         """
         if unit.hp <= 0 and not hasattr(unit, '_death_recorded'):
