@@ -4,7 +4,6 @@ import uuid
 from fastapi import HTTPException, status
 from .. import game_constants
 from ..enums.unit_type import UnitType
-from ..core.calculate_rating import calculate_new_rating
 from ..database import AsyncSessionLocal
 import random
 
@@ -584,6 +583,7 @@ class GameService:
             game_ended = True
             game.status = game_constants.GameStatus.ENDED.value
 
+
         elif game.player1.hp <= 0:
             # Player 2 победил
             game_winner = game.player2.username
@@ -625,24 +625,16 @@ class GameService:
             
             print(f"🏆 Game {game_id} ended. Winner: {game_winner}")
 
-            # Обновляем рейтинг игроков
+            # Обновляем рейтинг и счётчики
             try:
                 async with AsyncSessionLocal() as db:
                     user_repo = UserRepository(db)
-                    p1 = await user_repo.get_user_by_username(game.player1.username)
-                    p2 = await user_repo.get_user_by_username(game.player2.username)
-                    if p1 and p2:
-                        if game_winner == "draw":
-                            score_A = 0.5
-                        else:
-                            score_A = 1.0 if game_winner == game.player1.username else 0.0
-                        new_rating_A, new_rating_B = calculate_new_rating(p1.rating, p2.rating, score_A)
-                        p1.rating = new_rating_A
-                        p2.rating = new_rating_B
-                        await db.commit()
-                        print(f"   Rating updated: {p1.username}={new_rating_A}, {p2.username}={new_rating_B}")
+                    new_r1, new_r2 = await user_repo.update_match_stats(game.player1.username, game.player2.username, game_winner)
+                    if new_r1 or new_r2:
+                        print(f"   Stats updated: {game.player1.username}={new_r1}, {game.player2.username}={new_r2}")
+
             except Exception as e:
-                print(f"   Rating update failed: {e}")
+                print(f"   Stats update failed: {e}")
 
             # Освобождаем игроков (удаляем привязки к игре)
             await self.player_repo.remove_player_game(game.player1.username)

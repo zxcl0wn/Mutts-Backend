@@ -54,15 +54,8 @@ async def matchmaking_background_task():
     redis = await get_redis()
     
     try:
-        heartbeat = 0
         while True:
             try:
-                await asyncio.sleep(1)
-                heartbeat += 1
-                if heartbeat % 5 == 0:
-                    qsize = await redis.scard("matchmaking_queue")
-                    print(f"[heartbeat] queue={qsize}")
-                
                 # Получаем сервисы
                 player_repo = PlayerRepository(redis)
                 game_repo = GameRepository(redis)

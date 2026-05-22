@@ -8,6 +8,9 @@ class UserBase(BaseModel):
 class UserResponse(UserBase):
     id: int
     rating: int
+    win_count: int
+    lose_count: int
+    draw_count: int
 
     class Config:
         from_attributes = True
