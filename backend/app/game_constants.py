@@ -21,7 +21,7 @@ PLANNING_TIME = 20
 
 NEW_ROUND_COINS = 5
 INITIAL_COINS = 10  # Начальные монеты
-INITIAL_HP = 100    # Начальное HP
+INITIAL_HP = 10    # Начальное HP
 
 # Лимиты юнитов
 MAX_UNITS_ON_BOARD = 6

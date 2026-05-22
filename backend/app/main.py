@@ -1,5 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
+
+from sqlalchemy.util import await_only
+
+from .core.dependencies import get_user_service
 from .database import init_db
 from .auth.routes import auth_router
 from .routes import game_router, matchmaking_router
@@ -7,6 +11,7 @@ from .core.redis import get_redis
 import asyncio
 from .repositories import PlayerRepository, GameRepository
 from .services.matchmaking_service import MatchmakingService
+from .services import UserService
 
 
 @asynccontextmanager
@@ -28,6 +33,16 @@ app.include_router(matchmaking_router)
 def test() -> dict[str, str]:
     return {
         "status": "OK"
+    }
+
+
+@app.get('/leaderboard')
+async def leaderboard(
+        user_service: UserService = Depends(get_user_service)
+):
+    all_players = await user_service.get_best_users_by_rating()
+    return {
+        "players": all_players
     }
 
 

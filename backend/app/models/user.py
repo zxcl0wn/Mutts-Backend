@@ -7,6 +7,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, nullable=False, index=True)
     username = Column(String, nullable=False, unique=True, index=True)
+    rating = Column(Integer, nullable=False, default=0)
     password = Column(String, nullable=False)
 
     def __repr__(self):

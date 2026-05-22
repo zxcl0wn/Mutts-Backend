@@ -1,7 +1,7 @@
 from fastapi import Depends
 from ..core.redis import get_redis
-from ..repositories import GameRepository, PlayerRepository, UnitRepository
-from ..services import GameService
+from ..repositories import GameRepository, PlayerRepository, UnitRepository, UserRepository
+from ..services import GameService, UserService
 from ..services.matchmaking_service import MatchmakingService
 from redis.asyncio import Redis
 from ..database import get_db
@@ -33,3 +33,9 @@ async def get_matchmaking_service(
     game_repo: GameRepository = Depends(get_game_repository)
 ) -> MatchmakingService:
     return MatchmakingService(player_repo, game_repo)
+
+
+async def get_user_service(
+        db: AsyncSession = Depends(get_db)
+) -> UserService:
+    return UserService(db)

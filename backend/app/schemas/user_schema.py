@@ -7,6 +7,7 @@ class UserBase(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    rating: int
 
     class Config:
         from_attributes = True

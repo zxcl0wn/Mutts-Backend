@@ -61,3 +61,10 @@ class UserRepository:
             select(User).where(User.username==username)
         )
         return user.scalar_one_or_none()
+
+
+    async def get_best_users_by_rating(self) -> list[User]:
+        best_users = await self.db.execute(
+            select(User).order_by(User.rating.desc()).limit(50)
+        )
+        return best_users.scalars().all()

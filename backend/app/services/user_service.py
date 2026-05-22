@@ -40,3 +40,8 @@ class UserService:
     async def get_user_by_username(self, username: str) -> UserResponse:
         user = await self.user_repository.get_user_by_username(username)
         return UserResponse.model_validate(user)
+
+
+    async def get_best_users_by_rating(self) -> list[UserResponse]:
+        users = await self.user_repository.get_best_users_by_rating()
+        return [UserResponse.model_validate(user) for user in users]
