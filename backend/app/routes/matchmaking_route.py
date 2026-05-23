@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from ..auth.utils.auth_utils import verify_token
+from ..auth.utils import verify_token
 from ..core.dependencies import get_matchmaking_service
-from ..services.matchmaking_service import MatchmakingService
+from ..services import MatchmakingService
 
 
 router = APIRouter(

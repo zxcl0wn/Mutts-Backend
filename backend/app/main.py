@@ -1,8 +1,5 @@
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
-
-from sqlalchemy.util import await_only
-
 from .core.dependencies import get_user_service
 from .database import init_db
 from .auth.routes import auth_router
@@ -10,8 +7,7 @@ from .routes import game_router, matchmaking_router
 from .core.redis import get_redis
 import asyncio
 from .repositories import PlayerRepository, GameRepository
-from .services.matchmaking_service import MatchmakingService
-from .services import UserService
+from .services import MatchmakingService, UserService
 
 
 @asynccontextmanager

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import User
-from ..auth.utils.auth_utils import get_password_hash
+from ..auth.utils import get_password_hash
 from sqlalchemy import select
 from ..core.calculate_rating import calculate_new_rating
 

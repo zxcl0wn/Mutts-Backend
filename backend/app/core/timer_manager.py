@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Optional
+from typing import Dict
 from ..repositories import GameRepository
 from ..services import GameService
 from .. import game_constants

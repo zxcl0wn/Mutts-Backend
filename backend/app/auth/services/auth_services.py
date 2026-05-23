@@ -8,10 +8,9 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.token import TokenData
-from ...models import User
 from ...repositories import UserRepository
 from ...database import get_db
-from ...auth.utils.auth_utils import verify_password, create_jwt
+from ...auth.utils import verify_password
 from ...config import settings
 load_dotenv()
 
@@ -51,7 +50,3 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db:Asy
     if user is None:
         raise credentials_exception
     return user
-
-
-# async def get_current_active_user(current_user: User = Depends(get_current_user)):
-#     return current_user

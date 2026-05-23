@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from ..models.unit_config import UnitConfig
-from ..enums.unit_type import UnitType
+from ..models import UnitConfig
+from ..enums import UnitType
 from typing import Optional
 
 

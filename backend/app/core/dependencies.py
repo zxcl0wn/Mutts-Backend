@@ -1,8 +1,8 @@
 from fastapi import Depends
 from ..core.redis import get_redis
-from ..repositories import GameRepository, PlayerRepository, UnitRepository, UserRepository
+from ..repositories import GameRepository, PlayerRepository, UnitRepository
 from ..services import GameService, UserService
-from ..services.matchmaking_service import MatchmakingService
+from ..services import MatchmakingService
 from redis.asyncio import Redis
 from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,8 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import User
 from ..repositories import UserRepository
-from ..schemas.user_schema import UserResponse, UserCreate, UserUpdate
+from ..schemas import UserResponse, UserCreate, UserUpdate
 from sqlalchemy.exc import IntegrityError
 
 

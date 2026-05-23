@@ -1,14 +1,13 @@
 from fastapi import APIRouter, WebSocket, Depends, WebSocketDisconnect
 from redis import Redis
-from ..auth.utils.auth_utils import verify_token
+from ..auth.utils import verify_token
 from ..core.dependencies import get_game_service, get_game_repository
 from ..services import GameService
 from ..repositories import GameRepository
 from fastapi import HTTPException, status
 from ..core.redis import get_redis
 from ..core.timer_manager import timer_manager
-from ..enums.unit_type import UnitType
-import json
+from ..enums import UnitType
 import asyncio
 
 

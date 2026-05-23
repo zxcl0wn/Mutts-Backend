@@ -1,6 +1,5 @@
 import random
-from ...schemas.unit_schema import Unit
-from ...schemas.battle import BattleEvent
+from ...schemas import Unit, BattleEvent
 
 
 class CombatSystem:

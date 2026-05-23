@@ -3,7 +3,7 @@ from ..schemas import Unit
 import uuid
 from fastapi import HTTPException, status
 from .. import game_constants
-from ..enums.unit_type import UnitType
+from ..enums import UnitType
 from ..database import AsyncSessionLocal
 import random
 
