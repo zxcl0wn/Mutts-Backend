@@ -8,6 +8,7 @@ from .core.redis import get_redis
 import asyncio
 from .repositories import PlayerRepository, GameRepository
 from .services import MatchmakingService, UserService
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -18,6 +19,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+origins = [
+    "http://194.87.35.96",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
 
 app.include_router(auth_router)
 app.include_router(game_router)
