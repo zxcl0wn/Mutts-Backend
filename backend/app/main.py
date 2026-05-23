@@ -55,35 +55,65 @@ async def leaderboard(
     }
 
 
+_matchmaking_alive = False
+
+
+@app.get("/debug/matchmaking")
+async def debug_matchmaking():
+    import json
+    redis = await get_redis()
+    try:
+        queue = await redis.smembers("matchmaking_queue")
+        queue_players = [p.decode() for p in queue]
+        return {
+            "task_alive": _matchmaking_alive,
+            "queue": queue_players,
+            "queue_size": len(queue_players)
+        }
+    finally:
+        await redis.aclose()
+
+
 async def matchmaking_background_task():
     """Фоновая задача для автоматического создания матчей"""
+    global _matchmaking_alive
     print("🔄 Matchmaking background task started")
-    
-    # Создаем подключение к Redis перед циклом
-    redis = await get_redis()
-    
+
+    redis = None
+
     try:
         while True:
             try:
-                # Получаем сервисы
+                if redis is None:
+                    redis = await get_redis()
+
+                _matchmaking_alive = True
                 player_repo = PlayerRepository(redis)
                 game_repo = GameRepository(redis)
                 matchmaking_service = MatchmakingService(player_repo, game_repo)
 
-                # Ищем пару игроков
                 match = await matchmaking_service.find_match()
 
                 if match:
                     player1, player2 = match
                     game_id = await matchmaking_service.create_game_for_players(player1, player2)
                     print(f"✓ Game created: {game_id} for {player1} vs {player2}")
-                
+                else:
+                    await asyncio.sleep(1)
+
             except Exception as e:
                 import traceback
                 print(f"❌ Matchmaking error: {e}")
                 traceback.print_exc()
+                if redis is not None:
+                    try:
+                        await redis.aclose()
+                    except:
+                        pass
+                    redis = None
                 await asyncio.sleep(5)
     finally:
-        # Закрываем подключение при завершении задачи
-        await redis.aclose()
+        _matchmaking_alive = False
+        if redis is not None:
+            await redis.aclose()
         print("🔄 Matchmaking background task stopped")
