@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..models import UnitConfig
-from ..enums import UnitType
-from typing import Optional
 
 
 class UnitRepository:
@@ -11,11 +9,11 @@ class UnitRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-
-    async def get_by_type(self, unit_type: UnitType) -> Optional[UnitConfig]:
+    
+    async def get_by_type(self, unit_type: str) -> UnitConfig|None:
         """Получить конфигурацию юнита по типу"""
         result = await self.db.execute(
-            select(UnitConfig).where(UnitConfig.name == unit_type.value)
+            select(UnitConfig).where(UnitConfig.name == unit_type)
         )
         return result.scalar_one_or_none()
 
@@ -26,7 +24,7 @@ class UnitRepository:
         return result.scalars().all()
 
 
-    async def get_by_id(self, unit_id: int) -> Optional[UnitConfig]:
+    async def get_by_id(self, unit_id: int) -> UnitConfig|None:
         """Получить конфигурацию юнита по ID"""
         result = await self.db.execute(
             select(UnitConfig).where(UnitConfig.id == unit_id)

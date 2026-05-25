@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 from app.database import Base
 from app.config import settings
+from app.models import User, UnitConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 

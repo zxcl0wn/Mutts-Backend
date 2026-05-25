@@ -3,7 +3,6 @@ from ..schemas import Unit
 import uuid
 from fastapi import HTTPException, status
 from .. import game_constants
-from ..enums import UnitType
 from ..database import AsyncSessionLocal
 import random
 
@@ -15,8 +14,16 @@ class GameService:
         self.unit_repo = unit_repository
 
 
-    async def place_unit(self, game_id: str, username: str, unit_type: UnitType) -> dict:
+    async def place_unit(self, game_id: str, username: str, unit_type: str) -> dict:
         """Разместить юнита (автоматически на поле или скамейку)"""
+        # Проверяем что тип юнита существует в БД
+        unit_config = await self.unit_repo.get_by_type(unit_type)
+        if not unit_config:
+            return {
+                "success": False,
+                "error": f"Invalid unit type: {unit_type}"
+            }
+
         game = await self.game_repo.get_game(game_id)
         if not game or game.phase != game_constants.GamePhases.PLANNING.value:
             return {
@@ -95,13 +102,10 @@ class GameService:
         # Списываем монеты
         player.coins -= unit_cost
 
-        # Проверяем автоматический мердж
-        merged_unit = await self._check_auto_merge(game, username, unit)
-        
-        # Сохраняем
+        # Сохраняем до мерджа, чтобы unit_placed показывал реальную позицию
         await self.game_repo.update_game(game)
 
-        # Уведомляем игроков - всегда отправляем unit_placed
+        # Всегда отправляем unit_placed — клиент знает где появился юнит
         await self.game_repo.publish_to_game(game_id, {
             "type": "unit_placed",
             "unit": unit.model_dump(),
@@ -109,11 +113,16 @@ class GameService:
             "coins_left": player.coins
         })
 
-        # Если произошел автомердж - отправляем дополнительно auto_merge
+        # Проверяем автоматический мердж
+        merged_unit = await self._check_auto_merge(game, username, unit)
+
         if merged_unit:
+            # Пересохраняем после мерджа
+            await self.game_repo.update_game(game)
+
             await self.game_repo.publish_to_game(game_id, {
                 "type": "auto_merge",
-                "merged_unit": merged_unit.model_dump(),
+                "unit": merged_unit.model_dump(),
                 "player": username,
                 "coins_left": player.coins
             })
@@ -132,7 +141,7 @@ class GameService:
             }
 
 
-    async def _get_unit_cost(self, unit_type: UnitType) -> int:
+    async def _get_unit_cost(self, unit_type: str) -> int:
         """Получить стоимость юнита из БД"""
         unit_config = await self.unit_repo.get_by_type(unit_type)
         if not unit_config:
@@ -140,16 +149,16 @@ class GameService:
         return unit_config.mana_cost
 
 
-    async def _create_unit(self, unit_type: UnitType, owner: str, x: int, y: int, location: str = "board") -> Unit:
+    async def _create_unit(self, unit_type: str, owner: str, x: int, y: int, location: str = "board") -> Unit:
         """Создать юнита с характеристиками из БД"""
         unit_config = await self.unit_repo.get_by_type(unit_type)
         
         if not unit_config:
-            raise ValueError(f"Unit type '{unit_type.value}' not found in database")
+            raise ValueError(f"Unit type '{unit_type}' not found in database")
         
         return Unit(
             id=str(uuid.uuid4()),
-            type=unit_type.value,
+            type=unit_type,
             level=1,
             hp=unit_config.hp,
             max_hp=unit_config.hp,
@@ -187,8 +196,7 @@ class GameService:
             unit1 = matching_units[0]
             
             # Получаем конфигурацию юнита из БД
-            unit_type = UnitType(new_unit.type)
-            unit_config = await self.unit_repo.get_by_type(unit_type)
+            unit_config = await self.unit_repo.get_by_type(new_unit.type)
             
             if not unit_config:
                 return None
@@ -419,7 +427,7 @@ class GameService:
             player = game.player2
 
         # Возвращаем % стоимости юнита
-        unit_cost = await self._get_unit_cost(UnitType(unit.type))
+        unit_cost = await self._get_unit_cost(unit.type)
         refund = unit_cost * game_constants.SELL_REFUND_PERCENT
         player.coins += refund
 

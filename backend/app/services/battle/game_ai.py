@@ -1,6 +1,4 @@
-from ...schemas.unit_schema import Unit
-from ...schemas.battle import BattleEvent
-from ...enums.battle import UnitState
+from ...schemas import Unit, BattleEvent
 from .combat import CombatSystem
 from .pathfinding import Pathfinding
 
@@ -11,10 +9,12 @@ class GameAI:
     def __init__(self):
         self.combat = CombatSystem()
         self.pathfinding = Pathfinding()
+        self._target_cells: dict[str, tuple[int, int]] = {}  # unit_id -> (gx, gy) куда движется
 
 
     def update_unit(self, unit: Unit, enemies: list[Unit], delta_time: float,
-                    current_time: float, events: list[BattleEvent]) -> tuple[Unit, int]|None:
+                    current_time: float, events: list[BattleEvent],
+                    obstacles: set[tuple[int, int]] | None = None) -> tuple[Unit, int]|None:
         """
         Обновить состояние юнита.
         Возвращает если произошла атака, иначе None
@@ -29,7 +29,7 @@ class GameAI:
             if not target or target.hp <= 0:
                 # Цель умерла - сбрасываем
                 unit.target_id = None
-        
+
         # Ищем цель если нет
         if not unit.target_id:
             target = self.find_nearest_enemy(unit, enemies)
@@ -44,36 +44,67 @@ class GameAI:
         if not target:
             return None
         
-        # Проверяем расстояние до цели (по клеткам)
+        import math
         grid_distance = self.pathfinding.calculate_grid_distance(unit, target)
-        
+
         if grid_distance <= unit.range:
             # В радиусе атаки
-            
-            # Проверяем стоим ли ровно на клетке
+            self._target_cells.pop(unit.id, None)
+
             if self.pathfinding.is_on_grid(unit):
-                # Стоим ровно на клетке - можем атаковать
                 if self.combat.can_attack(unit, current_time):
-                    # Атакуем (БЕЗ применения урона)
                     event, damage = self.combat.attack(unit, target, current_time)
                     events.append(event)
-                    return (target, damage)  # Возвращаем цель и урон для применения позже
-                else:
-                    # Ждем attack_speed (стоим на месте)
-                    pass
+                    return (target, damage)
             else:
-                # Не на клетке - выравниваемся на центр клетки
-                import math
-                grid_x = math.floor(unit.position_x)
-                grid_y = math.floor(unit.position_y)
-                event = self.pathfinding.move_to_grid(unit, grid_x, grid_y, delta_time, current_time)
+                cell_x = math.floor(unit.position_x)
+                cell_y = math.floor(unit.position_y)
+                event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
                 if event:
                     events.append(event)
         else:
-            # Вне радиуса - двигаемся к цели
-            event = self.pathfinding.move_to_target(unit, target, delta_time, current_time)
-            if event:
-                events.append(event)
+            # Вне радиуса — движение по сетке
+            if self.pathfinding.is_on_grid(unit):
+                # Дошли до центра — выбираем следующую клетку
+                my_cell_x = math.floor(unit.position_x)
+                my_cell_y = math.floor(unit.position_y)
+                target_cell_x = math.floor(target.position_x)
+                target_cell_y = math.floor(target.position_y)
+
+                # Клетка цели не препятствие (чтобы могли подойти вплотную)
+                target_in_obstacles = False
+                if obstacles is not None:
+                    target_in_obstacles = (target_cell_x, target_cell_y) in obstacles
+                    obstacles.discard((target_cell_x, target_cell_y))
+
+                next_cell = self.pathfinding.get_next_cell(my_cell_x, my_cell_y, target_cell_x, target_cell_y, obstacles=obstacles)
+                if next_cell:
+                    self._target_cells[unit.id] = next_cell
+                    if obstacles is not None:
+                        obstacles.add(next_cell)  # резервируем для этого тика
+                    cell_x, cell_y = next_cell
+                    event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
+                    if event:
+                        events.append(event)
+
+                # Восстанавливаем target_cell если он был в obstacles
+                if obstacles is not None and target_in_obstacles:
+                    obstacles.add((target_cell_x, target_cell_y))
+            else:
+                # Идём к сохранённой клетке — тоже резервируем
+                if unit.id in self._target_cells:
+                    cell_x, cell_y = self._target_cells[unit.id]
+                    if obstacles is not None:
+                        obstacles.add((cell_x, cell_y))
+                    event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
+                    if event:
+                        events.append(event)
+                else:
+                    cell_x = math.floor(unit.position_x)
+                    cell_y = math.floor(unit.position_y)
+                    event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
+                    if event:
+                        events.append(event)
         
         return None
 

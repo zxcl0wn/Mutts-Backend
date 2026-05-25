@@ -7,7 +7,6 @@ from ..repositories import GameRepository
 from fastapi import HTTPException, status
 from ..core.redis import get_redis
 from ..core.timer_manager import timer_manager
-from ..enums import UnitType
 import asyncio
 
 
@@ -88,18 +87,9 @@ async def game_websocket(
                 # Обработка разных типов сообщений
                 if data["type"] == "place_unit":
                     try:
-                        unit_type = UnitType(data["unit_type"])
-                    except ValueError:
-                        await websocket.send_json({
-                            "success": False,
-                            "error": f"Invalid unit type: {data['unit_type']}"
-                        })
-                        continue
-                    
-                    try:
                         result = await game_service.place_unit(
                             game_id, username,
-                            unit_type
+                            data["unit_type"]
                         )
                         if not result.get("success", True):
                             await websocket.send_json(result)

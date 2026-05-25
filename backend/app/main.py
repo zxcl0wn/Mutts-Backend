@@ -60,7 +60,6 @@ _matchmaking_alive = False
 
 @app.get("/debug/matchmaking")
 async def debug_matchmaking():
-    import json
     redis = await get_redis()
     try:
         queue = await redis.smembers("matchmaking_queue")

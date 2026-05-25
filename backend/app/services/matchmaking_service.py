@@ -71,7 +71,7 @@ class MatchmakingService:
         }
 
 
-    async def find_match(self) -> tuple[str, str]|None: # TODO: подбор по рейтингу
+    async def find_match(self) -> tuple[str, str]|None:
         """Найти пару игроков из очереди"""
         queue_size = await self.player_repo.get_queue_size()
         if queue_size < 2:

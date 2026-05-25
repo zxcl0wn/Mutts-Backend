@@ -1,9 +1,9 @@
-from ...schemas.game_schema import GameState
-from ...schemas.unit_schema import Unit
-from ...schemas.battle import BattleResult, BattleEvent
-from ...repositories.unit_repository import UnitRepository
+from ...schemas import GameState, Unit, BattleResult, BattleEvent
+from ...repositories import UnitRepository
 from .game_ai import GameAI
 from .combat import CombatSystem
+import math
+
 
 # Константы симуляции
 STEP_DURATION = 0.1  # 100ms на шаг
@@ -115,8 +115,17 @@ class BattleSimulator:
             # Выводим заголовок тика
             print(f"\n--- TICK {step} (t={current_time:.1f}s) | P1: {p1_alive} alive | P2: {p2_alive} alive ---")
             
+            # Собираем занятые клетки на текущий тик
+            all_units = player1_units + player2_units
+            occupied_cells: set[tuple[int, int]] = set()
+            for unit in all_units:
+                if unit.hp > 0:
+                    gx = math.floor(unit.position_x)
+                    gy = math.floor(unit.position_y)
+                    occupied_cells.add((gx, gy))
+
             # Собираем все атаки которые произойдут в этом тике
-            pending_damage = []  # [(target, damage), ...]
+            pending_damage = []
             
             # Обновляем юнитов Player 1
             for unit in player1_units:
@@ -124,11 +133,12 @@ class BattleSimulator:
                     continue
 
                 events_before = len(events)
-                attack_result = self.game_ai.update_unit(unit, player2_units, STEP_DURATION, current_time, events)
+                attack_result = self.game_ai.update_unit(unit, player2_units, STEP_DURATION, current_time, events, obstacles=occupied_cells)
                 
                 # Если была атака, сохраняем урон для применения позже
                 if attack_result:
                     target, damage = attack_result
+                    print(f"   🔥 ATTACK: {unit.type} attack={unit.attack} → damage={damage} target HP before={target.hp}")
                     pending_damage.append((target, damage))
                 
                 # Выводим что делает юнит
@@ -140,11 +150,12 @@ class BattleSimulator:
                     continue
 
                 events_before = len(events)
-                attack_result = self.game_ai.update_unit(unit, player1_units, STEP_DURATION, current_time, events)
+                attack_result = self.game_ai.update_unit(unit, player1_units, STEP_DURATION, current_time, events, obstacles=occupied_cells)
                 
                 # Если была атака, сохраняем урон для применения позже
                 if attack_result:
                     target, damage = attack_result
+                    print(f"   🔥 ATTACK: {unit.type} attack={unit.attack} → damage={damage} target HP before={target.hp}")
                     pending_damage.append((target, damage))
                 
                 # Выводим что делает юнит
@@ -152,7 +163,9 @@ class BattleSimulator:
             
             # Применяем весь урон одновременно
             for target, damage in pending_damage:
+                old_hp = target.hp
                 self.combat.apply_damage(target, damage)
+                print(f"   💥 APPLY DMG: {damage} to {target.type} → HP {old_hp} → {target.hp}")
             
             # Проверяем смерти
             all_units = player1_units + player2_units

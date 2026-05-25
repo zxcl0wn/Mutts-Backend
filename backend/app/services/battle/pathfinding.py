@@ -1,6 +1,5 @@
 import math
-from ...schemas.unit_schema import Unit
-from ...schemas.battle import BattleEvent
+from ...schemas import Unit, BattleEvent
 
 
 class Pathfinding:
@@ -73,6 +72,35 @@ class Pathfinding:
         )
 
 
+    def get_next_cell(self, from_cell_x: int, from_cell_y: int, to_cell_x: int, to_cell_y: int, obstacles: set[tuple[int, int]]|None = None) -> tuple[int, int]|None:
+        """Следующая клетка по кратчайшему пути к цели"""
+        if from_cell_x == to_cell_x and from_cell_y == to_cell_y:
+            return None
+
+        neighbors = []
+
+        # 8 соседних клеток
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+
+                neighbour_x = from_cell_x + dx
+                neighbour_y = from_cell_y + dy
+                if obstacles and (neighbour_x, neighbour_y) in obstacles:
+                    continue
+
+                # Чебышевское расстояние от соседней клетки до цели
+                dist = max(abs(to_cell_x - neighbour_x), abs(to_cell_y - neighbour_y))
+                neighbors.append((dist, neighbour_x, neighbour_y))
+
+        if not neighbors:
+            return None
+
+        neighbors.sort(key=lambda x: x[0])
+        return (neighbors[0][1], neighbors[0][2])
+
+
     def calculate_distance(self, unit1: Unit, unit2: Unit) -> float:
         """Евклидово расстояние между юнитами"""
         dx = unit2.position_x - unit1.position_x
@@ -95,20 +123,16 @@ class Pathfinding:
 
     def is_on_grid(self, unit: Unit) -> bool:
         """Проверить стоит ли юнит в центре клетки"""
-        grid_x = math.floor(unit.position_x)
-        grid_y = math.floor(unit.position_y)
-        
-        center_x = grid_x + 0.5
-        center_y = grid_y + 0.5
-        
-        # Проверяем с небольшой погрешностью
+        cell_x = math.floor(unit.position_x)
+        cell_y = math.floor(unit.position_y)
+        center_x = cell_x + 0.5
+        center_y = cell_y + 0.5
         return abs(unit.position_x - center_x) < 0.01 and abs(unit.position_y - center_y) < 0.01
 
 
     def snap_to_grid(self, unit: Unit) -> None:
         """Выровнять юнита на центр ближайшей клетки"""
-        grid_x = math.floor(unit.position_x)
-        grid_y = math.floor(unit.position_y)
-        
-        unit.position_x = float(grid_x) + 0.5
-        unit.position_y = float(grid_y) + 0.5
+        cell_x = math.floor(unit.position_x)
+        cell_y = math.floor(unit.position_y)
+        unit.position_x = float(cell_x) + 0.5
+        unit.position_y = float(cell_y) + 0.5
