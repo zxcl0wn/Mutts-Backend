@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from .core.dependencies import get_user_service
 from .database import init_db
 from .auth.routes import auth_router
-from .routes import game_router, matchmaking_router
+from .routes import game_router, matchmaking_router, unit_config_router
 from .core.redis import get_redis
 import asyncio
 from .repositories import PlayerRepository, GameRepository
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(game_router)
 app.include_router(matchmaking_router)
+app.include_router(unit_config_router)
 
 
 

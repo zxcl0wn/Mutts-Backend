@@ -478,7 +478,9 @@ class GameService:
         await self.game_repo.publish_to_game(game_id, {
             "type": "planning_phase_start",
             "round": game.round,
-            "time_left": game.timer
+            "time_left": game.timer,
+            "player1_coins": game.player1.coins,
+            "player2_coins": game.player2.coins,
         })
         
         # Запускаем таймер если нужно
