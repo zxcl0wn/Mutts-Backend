@@ -101,7 +101,7 @@ class BattleSimulator:
         
         while step < MAX_STEPS:
             step += 1
-            current_time += STEP_DURATION
+            current_time = round(step * STEP_DURATION, 1)
             
             # Считаем живых до обновления
             p1_alive = sum(1 for unit in player1_units if unit.hp > 0)

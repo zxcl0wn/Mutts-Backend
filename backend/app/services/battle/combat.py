@@ -28,7 +28,8 @@ class CombatSystem:
             unit_id=attacker.id,
             target_id=target.id,
             damage=damage,
-            crit=(damage > attacker.attack)
+            crit=(damage > attacker.attack),
+            position=(attacker.position_x, attacker.position_y)
         )
         
         return event, damage
@@ -60,6 +61,7 @@ class CombatSystem:
             return BattleEvent(
                 time=current_time,
                 type="death",
-                unit_id=unit.id
+                unit_id=unit.id,
+                position=(unit.position_x, unit.position_y)
             )
         return None
