@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from ..core.rate_limiter import limiter
 from ..repositories import UnitRepository
 from ..core.dependencies import get_unit_repository
 from pydantic import BaseModel
@@ -33,6 +34,7 @@ class GameConfigResponse(BaseModel):
 
 
 @router.get("/unit-configs")
+@limiter.limit("20/minute")
 async def get_unit_configs(unit_repo: UnitRepository = Depends(get_unit_repository)) -> list[UnitConfigResponse]:
     configs = await unit_repo.get_all()
     return [
@@ -53,6 +55,7 @@ async def get_unit_configs(unit_repo: UnitRepository = Depends(get_unit_reposito
 
 
 @router.get("/game-config")
+@limiter.limit("20/minute")
 async def get_game_config() -> GameConfigResponse:
     from .. import game_constants
     return GameConfigResponse(

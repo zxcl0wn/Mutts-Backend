@@ -5,6 +5,9 @@ from .database import init_db
 from .auth.routes import auth_router
 from .routes import game_router, matchmaking_router, unit_config_router
 from .core.redis import get_redis
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from .core.rate_limiter import limiter
 import asyncio
 from .repositories import PlayerRepository, GameRepository
 from .services import MatchmakingService, UserService
@@ -19,6 +22,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://194.87.35.96",
@@ -47,6 +52,7 @@ def test() -> dict[str, str]:
 
 
 @app.get('/leaderboard')
+@limiter.limit("20/minute")
 async def leaderboard(
         user_service: UserService = Depends(get_user_service)
 ):
@@ -60,6 +66,7 @@ _matchmaking_alive = False
 
 
 @app.get("/debug/matchmaking")
+@limiter.limit("20/minute")
 async def debug_matchmaking():
     redis = await get_redis()
     try:

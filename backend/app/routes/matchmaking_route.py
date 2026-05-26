@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from ..auth.utils import verify_token
 from ..core.dependencies import get_matchmaking_service
 from ..services import MatchmakingService
+from ..core.rate_limiter import limiter
 
 
 router = APIRouter(
@@ -10,7 +11,9 @@ router = APIRouter(
 
 
 @router.post("/join")
+@limiter.limit("20/minute")
 async def join_queue(
+    request: Request,
     access_token: str,
     matchmaking_service: MatchmakingService = Depends(get_matchmaking_service)
 ):
@@ -36,7 +39,9 @@ async def join_queue(
 
 
 @router.post("/leave")
+@limiter.limit("20/minute")
 async def leave_queue(
+    request: Request,
     access_token: str,
     matchmaking_service: MatchmakingService = Depends(get_matchmaking_service)
 ):
@@ -53,7 +58,9 @@ async def leave_queue(
 
 
 @router.get("/status")
+@limiter.limit("20/minute")
 async def get_status(
+    request: Request,
     access_token: str,
     matchmaking_service: MatchmakingService = Depends(get_matchmaking_service)
 ):
