@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from contextlib import asynccontextmanager
 from .core.dependencies import get_user_service
 from .database import init_db
@@ -54,6 +54,7 @@ def test() -> dict[str, str]:
 @app.get('/leaderboard')
 @limiter.limit("20/minute")
 async def leaderboard(
+        request: Request,
         user_service: UserService = Depends(get_user_service)
 ):
     all_players = await user_service.get_best_users_by_rating()
@@ -66,7 +67,6 @@ _matchmaking_alive = False
 
 
 @app.get("/debug/matchmaking")
-@limiter.limit("20/minute")
 async def debug_matchmaking():
     redis = await get_redis()
     try:

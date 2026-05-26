@@ -35,7 +35,7 @@ class GameConfigResponse(BaseModel):
 
 @router.get("/unit-configs")
 @limiter.limit("20/minute")
-async def get_unit_configs(unit_repo: UnitRepository = Depends(get_unit_repository)) -> list[UnitConfigResponse]:
+async def get_unit_configs(request: Request, unit_repo: UnitRepository = Depends(get_unit_repository)) -> list[UnitConfigResponse]:
     configs = await unit_repo.get_all()
     return [
         UnitConfigResponse(
@@ -56,7 +56,7 @@ async def get_unit_configs(unit_repo: UnitRepository = Depends(get_unit_reposito
 
 @router.get("/game-config")
 @limiter.limit("20/minute")
-async def get_game_config() -> GameConfigResponse:
+async def get_game_config(request: Request) -> GameConfigResponse:
     from .. import game_constants
     return GameConfigResponse(
         initial_hp=game_constants.INITIAL_HP,
