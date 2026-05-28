@@ -47,7 +47,7 @@ app.include_router(unit_config_router)
 @app.get("/")
 def test() -> dict[str, str]:
     return {
-        "status": "OK"
+        "status": "OK!!"
     }
 
 
