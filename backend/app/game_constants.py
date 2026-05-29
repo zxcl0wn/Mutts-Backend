@@ -29,12 +29,12 @@ MAX_UNITS_ON_BENCH = 4
 MAX_UNITS_TOTAL = 10  # На поле + на скамейке
 
 # Размер поля (общая доска)
-BOARD_SIZE_X = 7  # Ширина
-BOARD_SIZE_Y = 8  # Длина (7x8 = 56 клеток)
+BOARD_SIZE_X = 8  # Ширина
+BOARD_SIZE_Y = 8  # Длина
 
 # Половины поля для каждого игрока
-PLAYER1_Y_RANGE = (0, 3)  # Player 1: y от 0 до 3 (7x4 = 28 клеток)
-PLAYER2_Y_RANGE = (4, 7)  # Player 2: y от 4 до 7 (7x4 = 28 клеток)
+PLAYER1_Y_RANGE = (0, 3)  # Player 1: y от 0 до 3 (8x4 = 32 клетки)
+PLAYER2_Y_RANGE = (4, 7)  # Player 2: y от 4 до 7 (8x4 = 32 клетки)
 
 # Игровые правила
 SELL_REFUND_PERCENT = 0.5

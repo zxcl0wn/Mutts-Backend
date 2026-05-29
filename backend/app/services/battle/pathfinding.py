@@ -92,13 +92,14 @@ class Pathfinding:
 
                 # Чебышевское расстояние от соседней клетки до цели
                 dist = max(abs(to_cell_x - neighbour_x), abs(to_cell_y - neighbour_y))
-                neighbors.append((dist, neighbour_x, neighbour_y))
+                is_diagonal = dx != 0 and dy != 0  # диагональ — меньший приоритет
+                neighbors.append((dist, is_diagonal, neighbour_x, neighbour_y))
 
         if not neighbors:
             return None
 
-        neighbors.sort(key=lambda x: x[0])
-        return (neighbors[0][1], neighbors[0][2])
+        neighbors.sort(key=lambda x: (x[0], x[1]))  # сначала расстояние, потом приоритет (0 = кардинально, 1 = диагонально)
+        return (neighbors[0][2], neighbors[0][3])
 
 
     def calculate_distance(self, unit1: Unit, unit2: Unit) -> float:
