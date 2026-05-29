@@ -72,10 +72,11 @@ async def refresh_access_token(refresh_token: str, db: AsyncSession = Depends(ge
     user = await UserService(db).get_user_by_username(user_username)
 
     new_access_token = create_access_token(user)
+    new_refresh_token = create_refresh_token(user)
 
     return {
         "access_token": new_access_token,
-        "refresh_token": refresh_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
 
