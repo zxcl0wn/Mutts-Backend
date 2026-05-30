@@ -56,7 +56,7 @@ class CombatSystem:
         Проверить смерть юнита.
         Возвращает событие смерти или None
         """
-        if unit.hp <= 0 and not hasattr(unit, '_death_recorded'):
+        if unit.hp <= 0 and not unit._death_recorded:
             unit._death_recorded = True
             return BattleEvent(
                 time=current_time,
