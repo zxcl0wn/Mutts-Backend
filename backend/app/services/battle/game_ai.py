@@ -14,7 +14,8 @@ class GameAI:
 
     def update_unit(self, unit: Unit, enemies: list[Unit], delta_time: float,
                     current_time: float, events: list[BattleEvent],
-                    obstacles: set[tuple[int, int]] | None = None) -> tuple[Unit, int]|None:
+                    obstacles: set[tuple[int, int]] | None = None,
+                    reserved_cells: set[tuple[int, int]] | None = None) -> tuple[Unit, int]|None:
         """
         Обновить состояние юнита.
         Возвращает если произошла атака, иначе None
@@ -77,7 +78,8 @@ class GameAI:
                     target_in_obstacles = (target_cell_x, target_cell_y) in obstacles
                     obstacles.discard((target_cell_x, target_cell_y))
 
-                next_cell = self.pathfinding.get_next_cell(my_cell_x, my_cell_y, target_cell_x, target_cell_y, obstacles=obstacles)
+                path_obstacles = (obstacles or set()) | (reserved_cells or set())
+                next_cell = self.pathfinding.get_next_cell(my_cell_x, my_cell_y, target_cell_x, target_cell_y, obstacles=path_obstacles)
                 if next_cell:
                     self._target_cells[unit.id] = next_cell
                     if obstacles is not None:

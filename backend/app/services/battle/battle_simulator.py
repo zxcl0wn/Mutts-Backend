@@ -124,10 +124,6 @@ class BattleSimulator:
                     gy = math.floor(unit.position_y)
                     occupied_cells.add((gx, gy))
 
-            # Клетки к которым юниты уже движутся — тоже заняты
-            for cell in self.game_ai._target_cells.values():
-                occupied_cells.add(cell)
-
             # Собираем все атаки которые произойдут в этом тике
             pending_damage = []
             
@@ -137,24 +133,26 @@ class BattleSimulator:
                     continue
 
                 events_before = len(events)
-                attack_result = self.game_ai.update_unit(unit, player2_units, STEP_DURATION, current_time, events, obstacles=occupied_cells)
-                
+                reserved_cells = set(self.game_ai._target_cells.values())
+                attack_result = self.game_ai.update_unit(unit, player2_units, STEP_DURATION, current_time, events, obstacles=occupied_cells, reserved_cells=reserved_cells)
+
                 # Если была атака, сохраняем урон для применения позже
                 if attack_result:
                     target, damage = attack_result
                     print(f"   🔥 ATTACK: {unit.type} attack={unit.attack} → damage={damage} target HP before={target.hp}")
                     pending_damage.append((target, damage))
-                
+
                 # Выводим что делает юнит
                 self._log_unit_action(unit, player2_units, events[events_before:], current_time)
-            
+
             # Обновляем юнитов Player 2
             for unit in player2_units:
                 if unit.hp <= 0:
                     continue
 
                 events_before = len(events)
-                attack_result = self.game_ai.update_unit(unit, player1_units, STEP_DURATION, current_time, events, obstacles=occupied_cells)
+                reserved_cells = set(self.game_ai._target_cells.values())
+                attack_result = self.game_ai.update_unit(unit, player1_units, STEP_DURATION, current_time, events, obstacles=occupied_cells, reserved_cells=reserved_cells)
                 
                 # Если была атака, сохраняем урон для применения позже
                 if attack_result:
