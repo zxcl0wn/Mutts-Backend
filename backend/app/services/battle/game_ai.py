@@ -94,11 +94,15 @@ class GameAI:
                 # Идём к сохранённой клетке — тоже резервируем
                 if unit.id in self._target_cells:
                     cell_x, cell_y = self._target_cells[unit.id]
-                    if obstacles is not None:
-                        obstacles.add((cell_x, cell_y))
-                    event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
-                    if event:
-                        events.append(event)
+                    if obstacles and (cell_x, cell_y) in obstacles:
+                        # Клетка занята — ищем новую на следующем тике
+                        self._target_cells.pop(unit.id, None)
+                    else:
+                        if obstacles is not None:
+                            obstacles.add((cell_x, cell_y))
+                        event = self.pathfinding.move_to_grid(unit, cell_x, cell_y, delta_time, current_time)
+                        if event:
+                            events.append(event)
                 else:
                     cell_x = math.floor(unit.position_x)
                     cell_y = math.floor(unit.position_y)

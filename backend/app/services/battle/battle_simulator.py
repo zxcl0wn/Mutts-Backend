@@ -124,6 +124,10 @@ class BattleSimulator:
                     gy = math.floor(unit.position_y)
                     occupied_cells.add((gx, gy))
 
+            # Клетки к которым юниты уже движутся — тоже заняты
+            for cell in self.game_ai._target_cells.values():
+                occupied_cells.add(cell)
+
             # Собираем все атаки которые произойдут в этом тике
             pending_damage = []
             
